@@ -102,20 +102,21 @@ def _build_story_hook(agent_name: str, requester: str, target: str) -> str:
     if requester == "Bottom" and target == "Oberon":
         return (
             f"Bottom pulls {agent_name} aside with a wicked grin. "
-            f'\"Oberon has grown too proud of his tidy ledgers. '
-            f'Burn one of his trade shrines to the ground, and I will '
-            f"show you tricks the forest forgot.\""
+            "“Oberon has grown too proud of his tidy ledgers. "
+            "Burn one of his trade shrines to the ground, and I will "
+            "show you tricks the forest forgot.”"
         )
+
     if requester == "Oberon" and target == "Bottom":
         return (
             f"Oberon sends a sealed contract to {agent_name}. "
-            f'\"Bottom's chaos bleeds into my markets. Break one of his '
-            f"masquerade circles and I'll stamp you with a permanent mark of trade.\""
+            "\"Bottom's chaos bleeds into my markets. Break one of his "
+            "masquerade circles and I'll stamp you with a permanent mark of trade.\""
         )
 
     return (
-        f"{requester} whispers to {agent_name}, offering you a chance to wound {target}'s pride "
-        "in exchange for a dangerous boon."
+        f"{requester} whispers to {agent_name}, offering you a chance to wound "
+        f"{target}'s pride in exchange for a dangerous boon."
     )
 
 
