@@ -26,6 +26,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Dict, List, Any
+from fizban_curse import filter_blocked_nodes_for_agent
 
 import json
 
@@ -93,6 +94,15 @@ def build_tarot_spread(
     agent["favor"] = favors
 
     eligible = eligible_nodes_across_trees(agent, trees)
+
+    # Apply curse / freeze layer: hide nodes blocked by active curses
+    eligible = filter_blocked_nodes_for_agent(
+        agent,
+        eligible,
+        location_tags=None,      # later: pass real location tags ("holy_ground", etc.)
+        round_index=None,        # later: pass world round index
+    )
+
 
     if not eligible:
         return []
