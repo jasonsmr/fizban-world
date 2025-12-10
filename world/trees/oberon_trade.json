@@ -1,0 +1,95 @@
+{
+  "id": "OBERON_TRADE_TREE",
+  "name": "Oberon's Ledger",
+  "description": "Oberon, steward of trade and structure, rewards those who keep the world’s contracts flowing.",
+  "patron": "Oberon",
+  "root_nodes": [
+    "OBERON_MERCHANT_MARK"
+  ],
+  "nodes": [
+    {
+      "id": "OBERON_MERCHANT_MARK",
+      "name": "Merchant's Mark",
+      "description": "Oberon stamps your soul with a subtle sigil of trade. Barter and bargains seem to tilt your way.",
+      "patron": "Oberon",
+      "category": "trade",
+      "tags": ["oberon", "merchant", "contract"],
+      "cost_points": 1,
+      "requires": {
+        "min_level": 1,
+        "max_level": 200,
+        "alignment_band": {
+          "law_chaos": "LAWFUL",
+          "good_evil": "ANY"
+        },
+        "favor": {
+          "Oberon": 0.40
+        },
+        "quest_flags": [],
+        "nodes": []
+      },
+      "effects": {
+        "fate.bounce_back_delta": 0.03,
+        "fate.grace_delta": 0.02,
+        "favor.Oberon_delta": 0.05,
+        "traits.add": ["merchant", "contract_keeper"]
+      }
+    },
+    {
+      "id": "OBERON_LEDGER_OF_FAIRS",
+      "name": "Ledger of Fairs",
+      "description": "You develop a sixth sense for fair deals. Cheaters feel strangely exposed in your presence.",
+      "patron": "Oberon",
+      "category": "trade",
+      "tags": ["oberon", "merchant", "lawful"],
+      "cost_points": 1,
+      "requires": {
+        "min_level": 3,
+        "max_level": 200,
+        "alignment_band": {
+          "law_chaos": "LAWFUL",
+          "good_evil": "NEUTRAL"
+        },
+        "favor": {
+          "Oberon": 0.50
+        },
+        "quest_flags": [],
+        "nodes": ["OBERON_MERCHANT_MARK"]
+      },
+      "effects": {
+        "fate.bounce_back_delta": 0.05,
+        "favor.Oberon_delta": 0.05,
+        "traits.add": ["fair_dealer"]
+      }
+    },
+    {
+      "id": "OBERON_TAX_COLLECTOR",
+      "name": "Crown's Collector",
+      "description": "You are an instrument of order. You may be loved or resented, but debts do not escape you.",
+      "patron": "Oberon",
+      "category": "authority",
+      "tags": ["oberon", "lawful", "kingdom"],
+      "cost_points": 1,
+      "requires": {
+        "min_level": 5,
+        "max_level": 200,
+        "alignment_band": {
+          "law_chaos": "LAWFUL",
+          "good_evil": "NEUTRAL"
+        },
+        "favor": {
+          "Oberon": 0.60
+        },
+        "quest_flags": [],
+        "nodes": ["OBERON_LEDGER_OF_FAIRS"]
+      },
+      "effects": {
+        "fate.grace_delta": 0.02,
+        "fate.mental_strain_delta": 0.03,
+        "favor.Oberon_delta": 0.10,
+        "traits.add": ["crown_collector"]
+      }
+    }
+  ]
+}
+

@@ -1,0 +1,97 @@
+{
+  "id": "BOTTOM_MASQUERADE_TREE",
+  "name": "Bottom's Masquerade",
+  "description": "Bottom delights in masks, misrule, and glorious disasters that make stories worth retelling.",
+  "patron": "Bottom",
+  "root_nodes": [
+    "BOTTOM_TRICKSTERS_MARK"
+  ],
+  "nodes": [
+    {
+      "id": "BOTTOM_TRICKSTERS_MARK",
+      "name": "Trickster's Mark",
+      "description": "Bottom notices your taste for chaos. Laughter, pranks, and pratfalls follow you.",
+      "patron": "Bottom",
+      "category": "trickster",
+      "tags": ["bottom", "trickster", "chaotic", "weird"],
+      "cost_points": 1,
+      "requires": {
+        "min_level": 1,
+        "max_level": 200,
+        "alignment_band": {
+          "law_chaos": "CHAOTIC",
+          "good_evil": "ANY"
+        },
+        "favor": {
+          "Bottom": 0.40
+        },
+        "quest_flags": [],
+        "nodes": []
+      },
+      "effects": {
+        "fate.grace_delta": 0.02,
+        "fate.mental_strain_delta": 0.02,
+        "fate.weird_mode_bias": 0.10,
+        "favor.Bottom_delta": 0.05,
+        "traits.add": ["trickster", "misrule_touched"]
+      }
+    },
+    {
+      "id": "BOTTOM_MASK_OF_MISRULE",
+      "name": "Mask of Misrule",
+      "description": "Masks, costumes, and role reversals come naturally to you. Authority becomes a costume, not a fact.",
+      "patron": "Bottom",
+      "category": "trickster",
+      "tags": ["bottom", "weird", "masquerade"],
+      "cost_points": 1,
+      "requires": {
+        "min_level": 3,
+        "max_level": 200,
+        "alignment_band": {
+          "law_chaos": "CHAOTIC",
+          "good_evil": "NEUTRAL"
+        },
+        "favor": {
+          "Bottom": 0.50
+        },
+        "quest_flags": [],
+        "nodes": ["BOTTOM_TRICKSTERS_MARK"]
+      },
+      "effects": {
+        "fate.weird_mode_bias": 0.15,
+        "fate.mental_strain_delta": 0.01,
+        "favor.Bottom_delta": 0.05,
+        "traits.add": ["masquerade_actor"]
+      }
+    },
+    {
+      "id": "BOTTOM_STAGE_CRASHER",
+      "name": "Stage Crasher",
+      "description": "You excel at entering scenes at exactly the worst possible time for others and best for drama.",
+      "patron": "Bottom",
+      "category": "drama",
+      "tags": ["bottom", "prankster", "weird"],
+      "cost_points": 2,
+      "requires": {
+        "min_level": 5,
+        "max_level": 200,
+        "alignment_band": {
+          "law_chaos": "CHAOTIC",
+          "good_evil": "ANY"
+        },
+        "favor": {
+          "Bottom": 0.60
+        },
+        "quest_flags": [],
+        "nodes": ["BOTTOM_MASK_OF_MISRULE"]
+      },
+      "effects": {
+        "fate.grace_delta": 0.03,
+        "fate.mental_strain_delta": 0.03,
+        "favor.Bottom_delta": 0.10,
+        "traits.add": ["scene_crasher"]
+      }
+    }
+  ]
+}
+

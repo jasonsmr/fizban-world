@@ -1,0 +1,66 @@
+{
+  "id": "LOVERS_BOND_TREE",
+  "name": "Lovers' Bond",
+  "description": "The Lovers reward connection, devotion, and glorious messes of the heart.",
+  "patron": "Lovers",
+  "root_nodes": [
+    "LOVERS_FIRST_BOND"
+  ],
+  "nodes": [
+    {
+      "id": "LOVERS_FIRST_BOND",
+      "name": "First Bond",
+      "description": "You form a meaningful bond with another agent. The world notices your hearts are entangled.",
+      "patron": "Lovers",
+      "category": "bond",
+      "tags": ["lovers", "romantic", "bonded"],
+      "cost_points": 1,
+      "requires": {
+        "min_level": 1,
+        "max_level": 200,
+        "alignment_band": {
+          "law_chaos": "ANY",
+          "good_evil": "ANY"
+        },
+        "favor": {
+          "Lovers": 0.40
+        },
+        "quest_flags": [],
+        "nodes": []
+      },
+      "effects": {
+        "favor.Lovers_delta": 0.10,
+        "traits.add": ["lover", "bonded"]
+      }
+    },
+    {
+      "id": "LOVERS_SHARED_FATE",
+      "name": "Shared Fate",
+      "description": "Your fate is partially shared with a chosen partner. Triumph and disaster echo between you.",
+      "patron": "Lovers",
+      "category": "bond",
+      "tags": ["lovers", "bonded", "fate"],
+      "cost_points": 2,
+      "requires": {
+        "min_level": 4,
+        "max_level": 200,
+        "alignment_band": {
+          "law_chaos": "ANY",
+          "good_evil": "ANY"
+        },
+        "favor": {
+          "Lovers": 0.55
+        },
+        "quest_flags": [],
+        "nodes": ["LOVERS_FIRST_BOND"]
+      },
+      "effects": {
+        "fate.grace_delta": 0.03,
+        "fate.mental_strain_delta": 0.02,
+        "favor.Lovers_delta": 0.10,
+        "traits.add": ["shared_fate"]
+      }
+    }
+  ]
+}
+
