@@ -1,0 +1,157 @@
+{
+  "tree_id": "PALADIN_OATH_CORE_TREE",
+  "label": "Oath of the Forest Vanguard",
+  "patron": "Titania",
+  "description": "A paladin oath tree that binds the knight to Titania and the forest, with a focus on resilience, protection, and weird grace.",
+  "nodes": [
+    {
+      "node_id": "PALADIN_OATH_INITIATE",
+      "name": "Oath Initiate",
+      "tier": 1,
+      "cost_points": 1,
+      "tags": ["paladin", "oath", "divine", "forest"],
+      "requires": {
+        "min_level": 1,
+        "min_favor": {
+          "Titania": 0.4
+        }
+      },
+      "effects": {
+        "traits_add": ["oathbound", "forest_vanguard"],
+        "stats": {
+          "max_hp_bonus": 5
+        }
+      },
+      "flavor": "You swear your first vows beneath the boughs of Titania's grove, feeling the forest notice you."
+    },
+    {
+      "node_id": "PALADIN_LAY_ON_HANDS",
+      "name": "Lay on Hands",
+      "tier": 1,
+      "cost_points": 1,
+      "tags": ["paladin", "healing", "support"],
+      "requires": {
+        "min_level": 2,
+        "prereq_nodes": ["PALADIN_OATH_INITIATE"]
+      },
+      "effects": {
+        "abilities_add": ["lay_on_hands_basic"],
+        "stats": {
+          "healing_pool": 10
+        }
+      },
+      "flavor": "Your touch channels Titania's sap and sun, mending bark, flesh, and spirit."
+    },
+    {
+      "node_id": "PALADIN_DIVINE_SMITE",
+      "name": "Divine Smite",
+      "tier": 2,
+      "cost_points": 1,
+      "tags": ["paladin", "smite", "radiant"],
+      "requires": {
+        "min_level": 3,
+        "alignment_hint": {
+          "law_chaos": "LAWFUL",
+          "good_evil": "GOOD"
+        },
+        "prereq_nodes": ["PALADIN_OATH_INITIATE"]
+      },
+      "effects": {
+        "abilities_add": ["divine_smite_basic"],
+        "stats": {
+          "smite_damage_bonus": 1
+        }
+      },
+      "flavor": "You lace your strikes with the burning displeasure of the court at those who break oaths."
+    },
+    {
+      "node_id": "PALADIN_AURA_OF_RESOLVE",
+      "name": "Aura of Resolve",
+      "tier": 2,
+      "cost_points": 1,
+      "tags": ["paladin", "aura", "morale"],
+      "requires": {
+        "min_level": 4,
+        "prereq_nodes": ["PALADIN_OATH_INITIATE"]
+      },
+      "effects": {
+        "traits_add": ["steadfast"],
+        "stats": {
+          "fear_resist_bonus": 0.2
+        }
+      },
+      "flavor": "Your presence steadies allies like deep roots in a storm."
+    },
+    {
+      "node_id": "PALADIN_VOW_OF_GROVE",
+      "name": "Vow of the Grove",
+      "tier": 3,
+      "cost_points": 2,
+      "tags": ["paladin", "oath", "forest", "defender"],
+      "requires": {
+        "min_level": 6,
+        "prereq_nodes": [
+          "PALADIN_LAY_ON_HANDS",
+          "PALADIN_DIVINE_SMITE"
+        ],
+        "min_favor": {
+          "Titania": 0.6
+        }
+      },
+      "effects": {
+        "traits_add": ["grove_guardian"],
+        "stats": {
+          "bonus_ac_in_forest": 2
+        }
+      },
+      "flavor": "You bind yourself to a living grove; in its shade your shield grows heavier and your resolve deeper."
+    },
+    {
+      "node_id": "PALADIN_WARD_OF_THE_KING",
+      "name": "Ward of the King",
+      "tier": 3,
+      "cost_points": 2,
+      "tags": ["paladin", "king", "defensive", "aura"],
+      "requires": {
+        "min_level": 7,
+        "min_favor": {
+          "King": 0.6
+        }
+      },
+      "effects": {
+        "traits_add": ["royal_ward"],
+        "stats": {
+          "ally_damage_reduction": 0.1
+        }
+      },
+      "flavor": "The mortal King marks you as their shield, drawing a subtle warding field around your allies."
+    },
+    {
+      "node_id": "PALADIN_CELESTIAL_WINGS",
+      "name": "Celestial Wings",
+      "tier": 4,
+      "cost_points": 3,
+      "tags": ["paladin", "flight", "angelic"],
+      "requires": {
+        "min_level": 10,
+        "prereq_nodes": [
+          "PALADIN_VOW_OF_GROVE",
+          "PALADIN_WARD_OF_THE_KING"
+        ],
+        "min_favor": {
+          "Titania": 0.75,
+          "King": 0.7
+        }
+      },
+      "effects": {
+        "abilities_add": ["celestial_wings_flight"],
+        "traits_add": ["half_celestial"],
+        "stats": {
+          "fly_speed_bonus": 10
+        }
+      },
+      "flavor": "For brief moments, shimmering wings of leaf and light unfurl from your back, answering both court and crown."
+    }
+  ]
+}
+
