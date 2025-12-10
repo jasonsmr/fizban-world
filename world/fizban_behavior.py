@@ -3,41 +3,34 @@
 """
 fizban_behavior.py
 
-Translate agent tags/traits/class into a strategy profile over
-the iterated game-theory strategies:
+Behavior engine for strategies (Copycat, Cooperator, Cheater, etc.)
 
-- Copycat
-- Cooperator
-- Copykitten
-- Grudger
-- Simpleton
-- Random
-- Detective
-- Cheater
+This version:
+- Uses alignment (law/chaos, good/evil)
+- Uses traits derived from:
+  - class
+  - favor with gods
+  - level-tree unlocks
+- Returns a weight distribution over Nicky Case-style strategies.
 
-Design:
-- Start from a class/alignment baseline.
-- Apply trait-based nudges (+/- weights).
-- Renormalize to a 0..1 distribution.
-
-This module is *pure* and does not mutate the agent. The main
-sim engine can adopt it later as a policy adapter.
+The goal is *illusion of personality*:
+Paladin + Titania + Oath => more Cooperator/Grudger/Copycat
+Puck + Bottom + Lovers => more Random/Copykitten/Cheater
 """
 
 from __future__ import annotations
 
-from typing import Dict, List
-import math
+from typing import Dict, Any, List, Tuple
+
+from fizban_alignment import ALIGNMENT_MAP
+from fizban_traits import derive_traits_for_agent
 
 
-StrategyProfile = Dict[str, float]
-
-
-ALL_STRATEGIES: List[str] = [
+STRATEGIES: List[str] = [
     "Copycat",
     "Cooperator",
-    "Copykitten",
     "Grudger",
+    "Copykitten",
     "Simpleton",
     "Random",
     "Detective",
@@ -45,187 +38,156 @@ ALL_STRATEGIES: List[str] = [
 ]
 
 
-def _normalize(profile: StrategyProfile) -> StrategyProfile:
-    total = sum(max(v, 0.0) for v in profile.values())
+def _init_weights() -> Dict[str, float]:
+    return {s: 1.0 for s in STRATEGIES}
+
+
+def _apply_alignment_influence(
+    weights: Dict[str, float], agent: Dict[str, Any]
+) -> None:
+    align = (agent.get("alignment") or {}).get("label")
+    if align is None:
+        # try to reconstruct from map if needed
+        law = (agent.get("alignment") or {}).get("law_chaos")
+        good = (agent.get("alignment") or {}).get("good_evil")
+        key = f"{law}_{good}".upper()
+        align = ALIGNMENT_MAP.get(key, {}).get("label")
+
+    label = (align or "").upper()
+
+    # Lawful => Copycat, Grudger
+    if "LAWFUL" in label:
+        weights["Copycat"] *= 1.4
+        weights["Grudger"] *= 1.3
+
+    # Chaotic => Random, Cheater, Copykitten
+    if "CHAOTIC" in label:
+        weights["Random"] *= 1.4
+        weights["Cheater"] *= 1.25
+        weights["Copykitten"] *= 1.2
+
+    # Good => Cooperator, Copykitten
+    if "GOOD" in label:
+        weights["Cooperator"] *= 1.4
+        weights["Copykitten"] *= 1.2
+        # soften pure Cheater
+        weights["Cheater"] *= 0.8
+
+    # Evil => Cheater, Detective
+    if "EVIL" in label:
+        weights["Cheater"] *= 1.4
+        weights["Detective"] *= 1.2
+        # soften Cooperator
+        weights["Cooperator"] *= 0.85
+
+    # Neutral in either axis => Random + Simpleton slightly up
+    if "NEUTRAL" in label and "TRUE" in label:
+        weights["Random"] *= 1.1
+        weights["Simpleton"] *= 1.1
+
+
+def _apply_trait_influence(
+    weights: Dict[str, float], trait_summary: Dict[str, Any]
+) -> None:
+    traits = set(trait_summary.get("traits") or [])
+
+    def bump(names: List[str], factor: float) -> None:
+        for n in names:
+            if n in weights:
+                weights[n] *= factor
+
+    # Class-based behavior:
+    if "class_paladin" in traits:
+        bump(["Cooperator", "Copycat", "Grudger"], 1.25)
+        bump(["Cheater", "Random"], 0.8)
+
+    if "class_rogue" in traits or "trickster_heart" in traits:
+        bump(["Random", "Detective", "Cheater"], 1.15)
+
+    if "class_druid" in traits or "forest_bloodline" in traits:
+        bump(["Copykitten", "Simpleton"], 1.2)
+
+    if "class_bard" in traits or "story_weaver" in traits:
+        bump(["Copykitten", "Random"], 1.15)
+
+    if "class_barbarian" in traits or "rage_bloodline" in traits:
+        bump(["Cheater", "Simpleton"], 1.15)
+        bump(["Detective"], 0.9)
+
+    # Oath / tree-based:
+    if "oathbound" in traits or "vow_keeper" in traits:
+        bump(["Grudger", "Copycat"], 1.3)
+
+    if "forest_sentinel" in traits or "forest_guardian" in traits:
+        bump(["Cooperator", "Copykitten"], 1.2)
+
+    # Favor-based:
+    if "titania_favored" in traits or "titania_chosen" in traits:
+        bump(["Copykitten", "Simpleton"], 1.2)
+        bump(["Random"], 1.05)
+
+    if "oberon_favored" in traits or "oberon_chosen" in traits:
+        bump(["Detective", "Copycat"], 1.25)
+
+    if "bottom_favored" in traits or "bottom_chosen" in traits:
+        bump(["Random", "Cheater"], 1.3)
+
+    if "lovers_favored" in traits or "lover_bonded" in traits:
+        bump(["Cooperator", "Copykitten"], 1.25)
+
+    if "king_favored" in traits or "king_chosen" in traits:
+        bump(["Grudger"], 1.2)
+
+    if "queen_favored" in traits or "queen_chosen" in traits:
+        bump(["Random", "Detective"], 1.15)
+
+    # Spy network / weird research pushes toward "meta" strategies
+    if "spy_network_friend" in traits:
+        bump(["Detective"], 1.2)
+
+
+def _normalize(weights: Dict[str, float]) -> Dict[str, float]:
+    total = sum(max(v, 0.0) for v in weights.values())
     if total <= 0:
         # fallback to uniform
-        return {s: 1.0 / len(ALL_STRATEGIES) for s in ALL_STRATEGIES}
-    return {k: max(v, 0.0) / total for k, v in profile.items()}
+        n = float(len(weights))
+        return {k: 1.0 / n for k in weights.keys()}
+    return {k: max(v, 0.0) / total for k, v in weights.items()}
 
 
-def baseline_for_agent(agent: Dict) -> StrategyProfile:
+def compute_behavior_profile(agent: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Very simple baselines by class + alignment label.
+    Public API.
+
+    Returns:
+    {
+      "strategy_profile": {strategy: float},
+      "strategy_profile_sorted": [["Copycat", 0.3], ...],
+      "traits": [...],
+      "debug": {...}
+    }
     """
-    dnd_class = str(agent.get("class", {}).get("dnd_class", "")).lower()
-    label = str(agent.get("alignment", {}).get("label", "")).lower()
+    weights = _init_weights()
 
-    profile: StrategyProfile = {s: 1.0 for s in ALL_STRATEGIES}
+    # Derive traits + favor snapshot
+    trait_summary = derive_traits_for_agent(agent)
 
-    # Class baselines
-    if dnd_class == "paladin":
-        # Paladin: honorable, a bit stubborn
-        profile.update(
-            Copycat=1.8,
-            Cooperator=1.8,
-            Grudger=1.4,
-            Copykitten=1.2,
-            Simpleton=0.8,
-            Random=0.6,
-            Detective=1.0,
-            Cheater=0.2,
-        )
-    elif dnd_class == "rogue":
-        # Rogue: opportunistic, playful
-        profile.update(
-            Copycat=1.1,
-            Cooperator=0.9,
-            Grudger=0.8,
-            Copykitten=1.5,
-            Simpleton=0.7,
-            Random=1.6,
-            Detective=1.3,
-            Cheater=1.3,
-        )
-    else:
-        # Generic adventurer
-        profile.update(
-            Copycat=1.2,
-            Cooperator=1.2,
-            Grudger=1.0,
-            Copykitten=1.0,
-            Simpleton=1.0,
-            Random=1.0,
-            Detective=1.0,
-            Cheater=0.8,
-        )
+    # Alignment and traits both push on weights
+    _apply_alignment_influence(weights, agent)
+    _apply_trait_influence(weights, trait_summary)
 
-    # Alignment nudges
-    if "lawful" in label:
-        profile["Copycat"] += 0.4
-        profile["Grudger"] += 0.2
-        profile["Random"] -= 0.2
-        profile["Cheater"] -= 0.2
-    if "chaotic" in label:
-        profile["Random"] += 0.5
-        profile["Copykitten"] += 0.3
-        profile["Simpleton"] += 0.1
-    if "good" in label:
-        profile["Cooperator"] += 0.4
-        profile["Cheater"] -= 0.3
-    if "evil" in label:
-        profile["Cheater"] += 0.5
-        profile["Grudger"] += 0.3
-        profile["Cooperator"] -= 0.3
-
-    return _normalize(profile)
-
-
-def infer_traits(agent: Dict) -> List[str]:
-    """
-    Infer a trait set from tags + class + misc state.
-
-    This is intentionally messy + expandable. It just creates
-    a vocabulary we can use to drive behavior.
-    """
-    traits: List[str] = []
-
-    tags = [str(t).lower() for t in agent.get("tags", [])]
-    dnd_class = str(agent.get("class", {}).get("dnd_class", "")).lower()
-    label = str(agent.get("alignment", {}).get("label", "")).lower()
-
-    traits.extend(tags)
-
-    if dnd_class:
-        traits.append(f"class:{dnd_class}")
-
-    if "lawful" in label:
-        traits.append("lawful")
-    if "chaotic" in label:
-        traits.append("chaotic")
-    if "good" in label:
-        traits.append("good")
-    if "evil" in label:
-        traits.append("evil")
-
-    # Future: pull traits from level-tree unlocks, e.g. node.effects.traits_add
-
-    # Deduplicate while preserving order
-    seen = set()
-    unique: List[str] = []
-    for t in traits:
-        if t not in seen:
-            seen.add(t)
-            unique.append(t)
-    return unique
-
-
-def apply_traits_to_profile(traits: List[str], profile: StrategyProfile) -> StrategyProfile:
-    """
-    Apply trait-based nudges to the profile.
-    """
-    p = dict(profile)
-
-    def bump(key: str, delta: float) -> None:
-        if key in p:
-            p[key] = max(0.0, p[key] + delta)
-
-    low_traits = [t.lower() for t in traits]
-
-    # Trickster/chaotic_neutral → more playful defection and probing
-    if "trickster" in low_traits or "chaotic_neutral" in low_traits or "class:rogue" in low_traits:
-        bump("Random", 0.4)
-        bump("Copykitten", 0.3)
-        bump("Detective", 0.2)
-        bump("Cheater", 0.2)
-
-    # Heroic / lawful_good → more cooperation & grudging punishment
-    if "hero" in low_traits or "lawful_good" in low_traits or "class:paladin" in low_traits:
-        bump("Cooperator", 0.4)
-        bump("Copycat", 0.3)
-        bump("Grudger", 0.3)
-        bump("Cheater", -0.3)
-
-    # Forest / vanguard traits (once unlocked from trees)
-    if "forest_vanguard" in low_traits or "grove_guardian" in low_traits:
-        bump("Cooperator", 0.2)
-        bump("Grudger", 0.1)
-
-    # Weird / Bottom-adjacent vibes → more Random and Simpleton
-    if "weird" in low_traits:
-        bump("Random", 0.3)
-        bump("Simpleton", 0.2)
-
-    # Merchant/contract → more Copycat and Detective (careful tit-for-tat, investigate)
-    if "merchant" in low_traits or "contract" in low_traits:
-        bump("Copycat", 0.3)
-        bump("Detective", 0.3)
-
-    # Seductive/succubus-style (for future demonic bloodline)
-    if "succubus" in low_traits or "seducer" in low_traits:
-        bump("Copykitten", 0.4)
-        bump("Detective", 0.2)
-        bump("Cheater", 0.2)
-
-    return _normalize(p)
-
-
-def build_strategy_profile(agent: Dict) -> Dict[str, object]:
-    """
-    Public helper: baseline → traits → final profile, plus metadata.
-    """
-    traits = infer_traits(agent)
-    base = baseline_for_agent(agent)
-    final = apply_traits_to_profile(traits, base)
-
-    # For UI/debug: sort by weight desc
-    sorted_items = sorted(final.items(), key=lambda kv: kv[1], reverse=True)
+    profile = _normalize(weights)
+    sorted_profile: List[Tuple[str, float]] = sorted(
+        profile.items(), key=lambda kv: kv[1], reverse=True
+    )
 
     return {
-        "class": agent.get("class", {}).get("dnd_class"),
-        "alignment_label": agent.get("alignment", {}).get("label"),
-        "traits": traits,
-        "strategy_profile": final,
-        "strategy_profile_sorted": sorted_items,
+        "strategy_profile": profile,
+        "strategy_profile_sorted": sorted_profile,
+        "traits": trait_summary["traits"],
+        "debug": {
+            "trait_sources": trait_summary["sources"],
+            "favor": trait_summary["favor"],
+        },
     }
 

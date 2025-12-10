@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-fizban_behavior_demo.py
+fizban_traits_demo.py
 
-Run behavior engine for Paladin + Puck and dump profiles.
+Preview trait derivation for Paladin + Puck.
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ from pathlib import Path
 import json
 
 from fizban_level_menu import _load_agent_from_v2
-from fizban_behavior import compute_behavior_profile
+from fizban_traits import derive_traits_for_agent
 
 
 def _demo() -> int:
@@ -22,12 +22,12 @@ def _demo() -> int:
     paladin = _load_agent_from_v2(examples / "agent_paladin_v2.json")
     puck = _load_agent_from_v2(examples / "agent_puck_v2.json")
 
-    paladin_behavior = compute_behavior_profile(paladin)
-    puck_behavior = compute_behavior_profile(puck)
+    paladin_traits = derive_traits_for_agent(paladin)
+    puck_traits = derive_traits_for_agent(puck)
 
     out = {
-        "paladin_behavior": paladin_behavior,
-        "puck_behavior": puck_behavior,
+        "paladin_traits": paladin_traits,
+        "puck_traits": puck_traits,
     }
 
     print(json.dumps(out, indent=2))
