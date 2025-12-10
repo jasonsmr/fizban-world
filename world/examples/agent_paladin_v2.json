@@ -1,0 +1,39 @@
+{
+  "name": "Paladin",
+  "alignment": {
+    "law_chaos": "LAWFUL",
+    "good_evil": "GOOD",
+    "label": "Lawful Good",
+    "default_strategy": "Copykitten"
+  },
+  "class": {
+    "dnd_class": "paladin",
+    "level": 3,
+    "job_tags": [
+      "tank",
+      "frontline",
+      "divine"
+    ]
+  },
+  "tags": [
+    "hero",
+    "lawful_good"
+  ],
+  "trust_baselines": [
+    {
+      "target": "Puck",
+      "affinity": 0.0,
+      "gossip_bias": 0.0,
+      "awe": 0.2,
+      "boredom": 0.0,
+      "betrayal_count": 0.0,
+      "cooperation_streak": 0.0
+    }
+  ],
+  "fate_baseline": {
+    "grace": 0.6,
+    "bounce_back": 0.5,
+    "mental_strain": 0.1
+  },
+  "notes": "Prototype paladin agent for Paladin/Puck trust scenarios."
+}

@@ -1,0 +1,38 @@
+{
+  "name": "Puck",
+  "alignment": {
+    "law_chaos": "CHAOTIC",
+    "good_evil": "NEUTRAL",
+    "label": "Chaotic Neutral",
+    "default_strategy": "Random"
+  },
+  "class": {
+    "dnd_class": "rogue",
+    "level": 2,
+    "job_tags": [
+      "thief",
+      "trickster"
+    ]
+  },
+  "tags": [
+    "trickster",
+    "chaotic_neutral"
+  ],
+  "trust_baselines": [
+    {
+      "target": "Paladin",
+      "affinity": 0.1,
+      "gossip_bias": 0.0,
+      "awe": 0.4,
+      "boredom": 0.1,
+      "betrayal_count": 0.0,
+      "cooperation_streak": 0.0
+    }
+  ],
+  "fate_baseline": {
+    "grace": 0.55,
+    "bounce_back": 0.6,
+    "mental_strain": 0.05
+  },
+  "notes": "Prototype rogue/trickster agent."
+}
