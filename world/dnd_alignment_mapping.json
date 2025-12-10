@@ -1,0 +1,336 @@
+{
+  "alignments": [
+    {
+      "label": "Lawful Good",
+      "short": "LG",
+      "axes": {
+        "law_chaos": "LAWFUL",
+        "good_evil": "GOOD"
+      },
+      "summary": "Acts with honor, compassion, and respect for order. Keeps promises and protects the weak.",
+      "canonical_examples": [
+        "paladin",
+        "knight-errant",
+        "devoted cleric"
+      ],
+      "strategy_mix": [
+        {
+          "strategy": "Copycat",
+          "weight": 0.4
+        },
+        {
+          "strategy": "Cooperator",
+          "weight": 0.3
+        },
+        {
+          "strategy": "Copykitten",
+          "weight": 0.2
+        },
+        {
+          "strategy": "Detective",
+          "weight": 0.1
+        }
+      ]
+    },
+    {
+      "label": "Neutral Good",
+      "short": "NG",
+      "axes": {
+        "law_chaos": "NEUTRAL",
+        "good_evil": "GOOD"
+      },
+      "summary": "Does the right thing without being bound to law or chaos. Helps others whenever possible.",
+      "canonical_examples": [
+        "wandering healer",
+        "kindly wizard"
+      ],
+      "strategy_mix": [
+        {
+          "strategy": "Cooperator",
+          "weight": 0.4
+        },
+        {
+          "strategy": "Copycat",
+          "weight": 0.3
+        },
+        {
+          "strategy": "Copykitten",
+          "weight": 0.2
+        },
+        {
+          "strategy": "Random",
+          "weight": 0.1
+        }
+      ]
+    },
+    {
+      "label": "Chaotic Good",
+      "short": "CG",
+      "axes": {
+        "law_chaos": "CHAOTIC",
+        "good_evil": "GOOD"
+      },
+      "summary": "Follows conscience over rules. Breaks laws when they are unjust. Prioritizes freedom and kindness.",
+      "canonical_examples": [
+        "rebellious rogue with a heart of gold"
+      ],
+      "strategy_mix": [
+        {
+          "strategy": "Copykitten",
+          "weight": 0.35
+        },
+        {
+          "strategy": "Copycat",
+          "weight": 0.25
+        },
+        {
+          "strategy": "Random",
+          "weight": 0.25
+        },
+        {
+          "strategy": "Detective",
+          "weight": 0.15
+        }
+      ]
+    },
+    {
+      "label": "Lawful Neutral",
+      "short": "LN",
+      "axes": {
+        "law_chaos": "LAWFUL",
+        "good_evil": "NEUTRAL"
+      },
+      "summary": "Respects law, tradition, and codes above personal bias. Order itself is the primary value.",
+      "canonical_examples": [
+        "judge",
+        "disciplined monk"
+      ],
+      "strategy_mix": [
+        {
+          "strategy": "Copycat",
+          "weight": 0.35
+        },
+        {
+          "strategy": "Simpleton",
+          "weight": 0.25
+        },
+        {
+          "strategy": "Cooperator",
+          "weight": 0.2
+        },
+        {
+          "strategy": "Grudger",
+          "weight": 0.2
+        }
+      ]
+    },
+    {
+      "label": "True Neutral",
+      "short": "TN",
+      "axes": {
+        "law_chaos": "NEUTRAL",
+        "good_evil": "NEUTRAL"
+      },
+      "summary": "Balances law and chaos, good and evil. Often acts pragmatically or with minimal bias.",
+      "canonical_examples": [
+        "druid",
+        "uninterested scholar"
+      ],
+      "strategy_mix": [
+        {
+          "strategy": "Random",
+          "weight": 0.3
+        },
+        {
+          "strategy": "Copycat",
+          "weight": 0.25
+        },
+        {
+          "strategy": "Simpleton",
+          "weight": 0.25
+        },
+        {
+          "strategy": "Detective",
+          "weight": 0.2
+        }
+      ]
+    },
+    {
+      "label": "Chaotic Neutral",
+      "short": "CN",
+      "axes": {
+        "law_chaos": "CHAOTIC",
+        "good_evil": "NEUTRAL"
+      },
+      "summary": "Follows whim and personal freedom. Can be unpredictable without being malicious.",
+      "canonical_examples": [
+        "Puck",
+        "trickster",
+        "drunken bard"
+      ],
+      "strategy_mix": [
+        {
+          "strategy": "Random",
+          "weight": 0.4
+        },
+        {
+          "strategy": "Copykitten",
+          "weight": 0.25
+        },
+        {
+          "strategy": "Detective",
+          "weight": 0.2
+        },
+        {
+          "strategy": "Cheater",
+          "weight": 0.15
+        }
+      ]
+    },
+    {
+      "label": "Lawful Evil",
+      "short": "LE",
+      "axes": {
+        "law_chaos": "LAWFUL",
+        "good_evil": "EVIL"
+      },
+      "summary": "Uses law and structure to dominate, exploit, or control others. Keeps word but twists it.",
+      "canonical_examples": [
+        "tyrant",
+        "devil",
+        "corrupt magistrate"
+      ],
+      "strategy_mix": [
+        {
+          "strategy": "Grudger",
+          "weight": 0.3
+        },
+        {
+          "strategy": "Detective",
+          "weight": 0.25
+        },
+        {
+          "strategy": "Cheater",
+          "weight": 0.25
+        },
+        {
+          "strategy": "Copycat",
+          "weight": 0.2
+        }
+      ]
+    },
+    {
+      "label": "Neutral Evil",
+      "short": "NE",
+      "axes": {
+        "law_chaos": "NEUTRAL",
+        "good_evil": "EVIL"
+      },
+      "summary": "Selfish and ruthless. Will use any means, lawful or not, to advance personal goals.",
+      "canonical_examples": [
+        "assassin",
+        "mob boss"
+      ],
+      "strategy_mix": [
+        {
+          "strategy": "Cheater",
+          "weight": 0.4
+        },
+        {
+          "strategy": "Random",
+          "weight": 0.25
+        },
+        {
+          "strategy": "Detective",
+          "weight": 0.2
+        },
+        {
+          "strategy": "Grudger",
+          "weight": 0.15
+        }
+      ]
+    },
+    {
+      "label": "Chaotic Evil",
+      "short": "CE",
+      "axes": {
+        "law_chaos": "CHAOTIC",
+        "good_evil": "EVIL"
+      },
+      "summary": "Destructive and cruel. Thrives on chaos, fear, and suffering without regard for order.",
+      "canonical_examples": [
+        "demon",
+        "murderous warlord"
+      ],
+      "strategy_mix": [
+        {
+          "strategy": "Cheater",
+          "weight": 0.5
+        },
+        {
+          "strategy": "Random",
+          "weight": 0.3
+        },
+        {
+          "strategy": "Grudger",
+          "weight": 0.2
+        }
+      ]
+    }
+  ],
+  "classes": [
+    {
+      "dnd_class": "paladin",
+      "favored_alignments": [
+        "Lawful Good",
+        "Lawful Neutral"
+      ],
+      "forbidden_alignments": [
+        "Chaotic Evil",
+        "Neutral Evil",
+        "Chaotic Neutral"
+      ]
+    },
+    {
+      "dnd_class": "cleric",
+      "favored_alignments": [
+        "Lawful Good",
+        "Neutral Good",
+        "Lawful Neutral"
+      ],
+      "forbidden_alignments": [
+        "Chaotic Evil"
+      ]
+    },
+    {
+      "dnd_class": "rogue",
+      "favored_alignments": [
+        "Chaotic Neutral",
+        "Neutral Evil",
+        "Chaotic Good"
+      ],
+      "forbidden_alignments": [
+        "Lawful Good"
+      ]
+    },
+    {
+      "dnd_class": "bard",
+      "favored_alignments": [
+        "Chaotic Good",
+        "Chaotic Neutral",
+        "Neutral Good"
+      ],
+      "forbidden_alignments": []
+    },
+    {
+      "dnd_class": "wizard",
+      "favored_alignments": [
+        "Neutral Good",
+        "True Neutral",
+        "Lawful Neutral"
+      ],
+      "forbidden_alignments": []
+    }
+  ]
+}
+
