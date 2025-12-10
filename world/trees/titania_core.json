@@ -1,0 +1,122 @@
+{
+  "id": "TITANIA_CORE_TREE",
+  "name": "Titania's Grace",
+  "description": "Core boons from Titania, Queen of the Fey. These perks bias fate, increase grace, and lean into weird dreams and forest magic.",
+  "patron": "Titania",
+  "root_nodes": [
+    "TITANIA_GRACE_SPARK"
+  ],
+  "nodes": [
+    {
+      "id": "TITANIA_GRACE_SPARK",
+      "name": "Spark of Titania's Grace",
+      "description": "Titania notices you; your dreams grow stranger and your fate lighter.",
+      "patron": "Titania",
+      "category": "core",
+      "tags": ["titania", "forest", "grace", "weird"],
+      "cost_points": 1,
+      "requires": {
+        "min_level": 1,
+        "max_level": 200,
+        "alignment_band": {
+          "law_chaos": "ANY",
+          "good_evil": "ANY"
+        },
+        "favor": {
+          "Titania": 0.30
+        },
+        "quest_flags": [],
+        "nodes": []
+      },
+      "effects": {
+        "fate.grace_delta": 0.05,
+        "fate.mental_strain_delta": -0.02,
+        "traits.add": ["titania_marked"]
+      }
+    },
+    {
+      "id": "TITANIA_WEIRD_DREAMS",
+      "name": "Weird Dreams",
+      "description": "Your sleep is filled with symbolic visions. The boundary between fate and imagination thins.",
+      "patron": "Titania",
+      "category": "core",
+      "tags": ["titania", "weird", "dreams", "oracle"],
+      "cost_points": 1,
+      "requires": {
+        "min_level": 3,
+        "max_level": 200,
+        "alignment_band": {
+          "law_chaos": "ANY",
+          "good_evil": "ANY"
+        },
+        "favor": {
+          "Titania": 0.40
+        },
+        "quest_flags": [],
+        "nodes": ["TITANIA_GRACE_SPARK"]
+      },
+      "effects": {
+        "fate.grace_delta": 0.03,
+        "fate.mental_strain_delta": 0.02,
+        "fate.weird_mode_bias": 0.10,
+        "traits.add": ["dream_touched"]
+      }
+    },
+    {
+      "id": "TITANIA_FOREST_ORACLE",
+      "name": "Forest Oracle",
+      "description": "Trees whisper when you pass. Omens and portents cling to your path.",
+      "patron": "Titania",
+      "category": "oracle",
+      "tags": ["titania", "forest", "oracle", "fate"],
+      "cost_points": 1,
+      "requires": {
+        "min_level": 5,
+        "max_level": 200,
+        "alignment_band": {
+          "law_chaos": "ANY",
+          "good_evil": "ANY"
+        },
+        "favor": {
+          "Titania": 0.50
+        },
+        "quest_flags": [],
+        "nodes": ["TITANIA_WEIRD_DREAMS"]
+      },
+      "effects": {
+        "fate.grace_delta": 0.04,
+        "fate.bounce_back_delta": 0.05,
+        "traits.add": ["forest_oracle"]
+      }
+    },
+    {
+      "id": "TITANIA_GOLDEN_THREAD",
+      "name": "Golden Thread of Destiny",
+      "description": "Titania ties a golden thread around your fate, slightly forgiving missteps and aligning you with her story.",
+      "patron": "Titania",
+      "category": "destiny",
+      "tags": ["titania", "destiny", "grace"],
+      "cost_points": 2,
+      "requires": {
+        "min_level": 8,
+        "max_level": 200,
+        "alignment_band": {
+          "law_chaos": "ANY",
+          "good_evil": "GOOD"
+        },
+        "favor": {
+          "Titania": 0.65
+        },
+        "quest_flags": [],
+        "nodes": ["TITANIA_FOREST_ORACLE"]
+      },
+      "effects": {
+        "fate.grace_delta": 0.06,
+        "fate.mental_strain_delta": -0.03,
+        "favor.Titania_delta": 0.10,
+        "traits.add": ["titania_favored"]
+      }
+    }
+  ]
+}
+
