@@ -1,0 +1,51 @@
+{
+  "id": "npc_puck_001",
+  "name": "Puck",
+  "kind": "fey",
+  "tags": [
+    "thief",
+    "fey",
+    "trickster"
+  ],
+  "alignment": {
+    "law_axis": "chaotic",
+    "moral_axis": "neutral"
+  },
+  "trust_strategy": "copykitten",
+  "trust_matrix": {
+    "npc_paladin_001": 0.18250000000000002
+  },
+  "gossip_bias": {},
+  "emotion": {
+    "valence": 0.1,
+    "arousal": 0.5,
+    "stance": 0.0,
+    "complacence": {
+      "mode": "neutral",
+      "level": 0.0
+    },
+    "strain": 0.0,
+    "weird_mode": false
+  },
+  "titanias_grace": {
+    "class_name": "rogue",
+    "job": "shadow_thief",
+    "level": 1,
+    "alignment_shift_tendency": "toward_good",
+    "boons": [],
+    "fate_bias_toward_trust": 0.05,
+    "fate_bias_toward_betrayal": 0.0
+  },
+  "bounce_back": {
+    "resilience": 0.7,
+    "resentment": 0.0,
+    "cooldown": 0
+  },
+  "inventory": {
+    "gold": 10,
+    "items": [
+      "dagger",
+      "lockpicks"
+    ]
+  }
+}

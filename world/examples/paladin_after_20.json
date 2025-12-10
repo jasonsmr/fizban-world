@@ -1,0 +1,57 @@
+{
+  "id": "npc_paladin_001",
+  "name": "Ser Elowen",
+  "kind": "human",
+  "tags": [
+    "paladin",
+    "order_of_light"
+  ],
+  "alignment": {
+    "law_axis": "lawful",
+    "moral_axis": "good"
+  },
+  "trust_strategy": "cooperator",
+  "trust_matrix": {
+    "npc_puck_001": 0.9815635187856818
+  },
+  "gossip_bias": {},
+  "emotion": {
+    "valence": 1.0,
+    "arousal": 0.5,
+    "stance": 0.0,
+    "complacence": {
+      "mode": "neutral",
+      "level": 0.0
+    },
+    "strain": 0.0,
+    "weird_mode": false
+  },
+  "titanias_grace": {
+    "class_name": "paladin",
+    "job": "holy_knight",
+    "level": 3,
+    "alignment_shift_tendency": "toward_good",
+    "boons": [],
+    "fate_bias_toward_trust": 0.1,
+    "fate_bias_toward_betrayal": 0.0
+  },
+  "bounce_back": {
+    "resilience": 0.7,
+    "resentment": 0.0,
+    "cooldown": 0
+  },
+  "inventory": {
+    "gold": 10,
+    "items": [
+      "dagger",
+      "lockpicks"
+    ]
+  },
+  "relationships": {
+    "npc_puck_001": {
+      "tier": "acquaintance",
+      "affinity": 0.1,
+      "romantic": false
+    }
+  }
+}

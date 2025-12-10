@@ -1,0 +1,66 @@
+[
+  {
+    "name": "Paladin",
+    "alignment": {
+      "law_chaos": "LAWFUL",
+      "good_evil": "GOOD",
+      "label": "Lawful Good",
+      "default_strategy": "Copykitten"
+    },
+    "dnd_class": "paladin",
+    "tags": [
+      "hero",
+      "lawful_good",
+      "tank"
+    ],
+    "trust": {
+      "Puck": {
+        "affinity": -0.19999999999999996,
+        "gossip_bias": 0.0,
+        "awe": 0.32999999999999996,
+        "boredom": 0.0,
+        "last_outcome": "CD"
+      }
+    },
+    "fate": {
+      "grace": 0.26,
+      "bounce_back": 0.5,
+      "mental_strain": 0.6499999999999999
+    },
+    "current_emotion": "calm",
+    "awe_level": 0.0,
+    "boredom_level": 0.0
+  },
+  {
+    "name": "Puck",
+    "alignment": {
+      "law_chaos": "CHAOTIC",
+      "good_evil": "NEUTRAL",
+      "label": "Chaotic Neutral",
+      "default_strategy": "Random"
+    },
+    "dnd_class": "rogue",
+    "tags": [
+      "trickster",
+      "chaotic_neutral",
+      "thief"
+    ],
+    "trust": {
+      "Paladin": {
+        "affinity": 1.0,
+        "gossip_bias": 0.0,
+        "awe": 0.7499999999999999,
+        "boredom": 0.0,
+        "last_outcome": "DC"
+      }
+    },
+    "fate": {
+      "grace": 0.5239999999999999,
+      "bounce_back": 0.5,
+      "mental_strain": 0.020000000000000004
+    },
+    "current_emotion": "calm",
+    "awe_level": 0.0,
+    "boredom_level": 0.0
+  }
+]

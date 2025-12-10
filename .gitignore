@@ -1,0 +1,15 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Logs, local state, sessions
+logs/
+memory/
+sessions/
+state/
+
+# Editor junk
+*.swp
+*.swo
+.DS_Store
