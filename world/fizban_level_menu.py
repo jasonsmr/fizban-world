@@ -1,256 +1,270 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 fizban_level_menu.py
 
-Level-up "tarot spread" for agents:
+Tarot-style level-up menu driven by:
+- level trees (Titania / Oberon / Bottom / Lovers)
+- current gods' favor (if present on agents)
+- god reaction "whispers" for each card
 
-- load_all_trees() -> dict[tree_id, LevelUpTree]
-- eligible_nodes_across_trees(agent, trees) -> list[dict]
-- build_tarot_spread(agent, trees, num_cards=3) -> list[dict]
-
-Each spread card is:
-{
-  "tree_id": ...,
-  "node_id": ...,
-  "name": ...,
-  "patron": ...,
-  "cost_points": ...,
-  "favor_for_patron": 0.0-1.0,
-  "tags": [...],
-  "short_hint": "why this card is showing up"
-}
+This module is intentionally defensive about world-builder function names:
+it will look for a usable builder in fizban_world_enrich *or* fizban_world_state
+instead of assuming a specific name.
 """
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Dict, List, Any
-from fizban_curse import filter_blocked_nodes_for_agent
-
 import json
+from typing import Any, Dict, List, Optional
 
-from fizban_gods import compute_favor_for_agent
-from fizban_level_tree import (
-    LevelUpTree,
-    LevelUpNode,
-    load_level_tree,
-    eligible_nodes_for_agent,
-)
+from fizban_world_state import build_world_state
+world = build_world_state()
+# These are stable across your repo
+from fizban_level_tree import eligible_nodes_for_agent
+from fizban_god_reactions import compute_god_reactions
+
+World = Dict[str, Any]
+Card = Dict[str, Any]
 
 
-# ---------- Tree loading ----------
+PATRON_BY_TREE: Dict[str, str] = {
+    "TITANIA_CORE_TREE": "Titania",
+    "OBERON_TRADE_TREE": "Oberon",
+    "BOTTOM_MASQUERADE_TREE": "Bottom",
+    "LOVERS_BOND_TREE": "Lovers",
+}
 
 
-def load_all_trees(base_dir: Path | None = None) -> Dict[str, LevelUpTree]:
+# ---------- World builder discovery ----------
+
+
+def _discover_world_builder() -> callable:
     """
-    Load all *.json trees under world/trees.
+    Try very hard to find a world-building function.
+
+    Priority:
+    1. fizban_world_enrich: build_world_enriched / build_enriched_world /
+       build_world_with_favor / build_world
+    2. fizban_world_state: build_world_state / build_world / build_world_final
+
+    Returns a zero-arg callable that builds a world dict, or raises a
+    descriptive RuntimeError if nothing is found.
     """
-    if base_dir is None:
-        base_dir = Path(__file__).resolve().parent
-    trees_dir = base_dir / "trees"
+    # Try enriched module first (if present)
+    try:
+        import fizban_world_enrich as _we  # type: ignore[import]
+    except ImportError:
+        _we = None
 
-    trees: Dict[str, LevelUpTree] = {}
-    for path in sorted(trees_dir.glob("*.json")):
-        tree = load_level_tree(path)
-        trees[tree.id] = tree
-    return trees
+    try:
+        import fizban_world_state as _ws  # type: ignore[import]
+    except ImportError:
+        _ws = None
 
-
-def eligible_nodes_across_trees(
-    agent: Dict[str, Any],
-    trees: Dict[str, LevelUpTree],
-) -> List[Dict[str, Any]]:
-    """
-    Return a list of {"tree_id", "node"} entries for all eligible nodes.
-    """
-    results: List[Dict[str, Any]] = []
-    for tree_id, tree in trees.items():
-        for node in eligible_nodes_for_agent(agent, tree):
-            results.append({"tree_id": tree_id, "node": node})
-    return results
-
-
-# ---------- Tarot-style level menu ----------
-
-
-def build_tarot_spread(
-    agent: Dict[str, Any],
-    trees: Dict[str, LevelUpTree],
-    num_cards: int = 3,
-) -> List[Dict[str, Any]]:
-    """
-    Build a 'tarot spread' of up to num_cards level-up options for this agent.
-
-    Strategy:
-    - Compute favor for the agent (per god) and attach it to agent["favor"].
-    - For each eligible node, score = favor[patron] (if any), fallback 0.5.
-    - Sort descending by score, then ascending by cost_points.
-    - Pick the top N, trying to diversify patrons when possible.
-    """
-    # Make a shallow copy so we can mutate safely
-    agent = dict(agent)
-    favors = compute_favor_for_agent(agent)
-    agent["favor"] = favors
-
-    eligible = eligible_nodes_across_trees(agent, trees)
-
-    # Apply curse / freeze layer: hide nodes blocked by active curses
-    eligible = filter_blocked_nodes_for_agent(
-        agent,
-        eligible,
-        location_tags=None,      # later: pass real location tags ("holy_ground", etc.)
-        round_index=None,        # later: pass world round index
-    )
-
-
-    if not eligible:
-        return []
-
-    # Attach scores
-    scored: List[Dict[str, Any]] = []
-    for entry in eligible:
-        node: LevelUpNode = entry["node"]
-        patron = node.patron or ""
-        favor_for_patron = float(favors.get(patron, 0.5)) if patron else 0.5
-        score = favor_for_patron
-        scored.append(
-            {
-                "tree_id": entry["tree_id"],
-                "node": node,
-                "score": score,
-                "favor_for_patron": favor_for_patron,
-            }
-        )
-
-    # Sort: higher score first, cheaper cost first, stable by name
-    scored.sort(key=lambda e: (-e["score"], e["node"].cost_points, e["node"].name))
-
-    spread: List[Dict[str, Any]] = []
-    used_patrons = set()
-
-    for entry in scored:
-        if len(spread) >= num_cards:
-            break
-        node: LevelUpNode = entry["node"]
-        patron = node.patron or ""
-        # Simple diversity: try not to repeat patrons until necessary
-        if patron and patron in used_patrons and len(used_patrons) < num_cards:
-            continue
-        used_patrons.add(patron)
-
-        spread.append(
-            {
-                "tree_id": entry["tree_id"],
-                "node_id": node.id,
-                "name": node.name,
-                "patron": patron,
-                "cost_points": node.cost_points,
-                "favor_for_patron": entry["favor_for_patron"],
-                "tags": node.tags,
-                "short_hint": _make_hint(node, entry["favor_for_patron"]),
-            }
-        )
-
-    # Fallback: if spread is still smaller than num_cards because of diversity rule,
-    # fill with remaining highest-scoring nodes.
-    if len(spread) < num_cards:
-        for entry in scored:
-            if len(spread) >= num_cards:
-                break
-            node: LevelUpNode = entry["node"]
-            if any(c["node_id"] == node.id for c in spread):
-                continue
-            spread.append(
-                {
-                    "tree_id": entry["tree_id"],
-                    "node_id": node.id,
-                    "name": node.name,
-                    "patron": node.patron or "",
-                    "cost_points": node.cost_points,
-                    "favor_for_patron": entry["favor_for_patron"],
-                    "tags": node.tags,
-                    "short_hint": _make_hint(node, entry["favor_for_patron"]),
-                }
+    # (module, candidate_names)
+    candidates = []
+    if _we is not None:
+        candidates.append(
+            (
+                _we,
+                [
+                    "build_world_enriched",
+                    "build_enriched_world",
+                    "build_world_with_favor",
+                    "build_world",
+                ],
             )
+        )
+    if _ws is not None:
+        candidates.append(
+            (
+                _ws,
+                [
+                    "build_world_state",
+                    "build_world",
+                    "build_world_final",
+                ],
+            )
+        )
 
-    return spread
+    for module, names in candidates:
+        for name in names:
+            if hasattr(module, name):
+                fn = getattr(module, name)
+                if callable(fn):
+                    return fn
 
-
-def _make_hint(node: LevelUpNode, favor: float) -> str:
-    patron = node.patron or "Unknown"
-    if favor >= 0.7:
-        mood = "favors you strongly"
-    elif favor >= 0.5:
-        mood = "is watching you with interest"
-    elif favor >= 0.3:
-        mood = "is unsure but curious"
-    else:
-        mood = "barely acknowledges you"
-    tags = ", ".join(node.tags) if node.tags else "their domain"
-    return f"{patron} {mood}; taking this boon nudges your story toward {tags}."
-
-
-# ---------- Demo: Paladin & Puck spreads ----------
-
-
-def _load_agent_from_v2(path: Path) -> Dict[str, Any]:
-    data = json.loads(path.read_text(encoding="utf-8"))
-    name = data.get("name", path.stem)
-    alignment = data.get("alignment", {})
-    cls = data.get("class", {})
-    tags = data.get("tags", [])
-    fate_baseline = data.get(
-        "fate_baseline",
-        {"grace": 0.5, "bounce_back": 0.5, "mental_strain": 0.1, "weird_mode": False},
+    raise RuntimeError(
+        "No usable world builder found.\n"
+        "Expected one of:\n"
+        "  - fizban_world_enrich.build_world_enriched / build_enriched_world / "
+        "build_world_with_favor / build_world\n"
+        "  - fizban_world_state.build_world_state / build_world / build_world_final\n"
+        "Please expose at least one of these."
     )
-    level = cls.get("level", data.get("level", 1))
-
-    agent = {
-        "name": name,
-        "alignment": alignment,
-        "class": cls,
-        "tags": tags,
-        "fate": {
-            "grace": float(fate_baseline.get("grace", 0.5)),
-            "bounce_back": float(fate_baseline.get("bounce_back", 0.5)),
-            "mental_strain": float(fate_baseline.get("mental_strain", 0.1)),
-            "weird_mode": bool(fate_baseline.get("weird_mode", False)),
-        },
-        "favor": {},
-        "unlocks": {"level_nodes": []},
-        "level": int(level),
-    }
-
-    # Pre-compute favor so other tools can see it if needed
-    agent["favor"] = compute_favor_for_agent(agent)
-    return agent
 
 
-def _demo() -> int:
-    base_dir = Path(__file__).resolve().parent
-    examples_dir = base_dir / "examples"
+# Bind once at import time
+_BUILD_WORLD = _discover_world_builder()
 
-    paladin_path = examples_dir / "agent_paladin_v2.json"
-    puck_path = examples_dir / "agent_puck_v2.json"
 
-    paladin = _load_agent_from_v2(paladin_path)
-    puck = _load_agent_from_v2(puck_path)
+def build_world_with_favor() -> World:
+    """
+    Build the world using the discovered builder.
 
-    trees = load_all_trees(base_dir)
+    If agents already have .favor attached, we use it.
+    If not, level menu will still work but all favor will be treated as 0.0.
+    """
+    world = _BUILD_WORLD()
+    return world
 
-    paladin_spread = build_tarot_spread(paladin, trees, num_cards=3)
-    puck_spread = build_tarot_spread(puck, trees, num_cards=3)
 
-    result = {
+# ---------- Small helpers ----------
+
+
+def _get_agent(world: World, agent_name: str) -> Dict[str, Any]:
+    wf = world.get("world_final") or {}
+    agents = wf.get("agents") or {}
+    return agents.get(agent_name, {})
+
+
+def _get_favor(world: World, agent_name: str) -> Dict[str, float]:
+    """
+    Extract favor map for an agent, if present.
+
+    Returns a {patron -> float} dict, defaulting to 0.0 if nothing is found.
+    """
+    agent = _get_agent(world, agent_name)
+    raw = agent.get("favor") or {}
+    return {str(k): float(v) for k, v in raw.items()}
+
+
+# ---------- Core: cards / spreads ----------
+
+
+def build_level_menu_for_agent(world: World, agent_name: str) -> List[Card]:
+    """
+    Build a tarot-like spread of candidate level-up nodes for an agent.
+
+    Uses:
+    - eligible_nodes_for_agent(world, agent_name)
+    - PATRON_BY_TREE mapping
+    - current favor (if available) to sort & annotate
+    """
+    favor = _get_favor(world, agent_name)
+
+    # Ask level-tree engine which nodes are eligible in general
+    nodes = eligible_nodes_for_agent(world, agent_name)
+
+    cards: List[Card] = []
+
+    for node in nodes:
+        tree_id = node.get("tree_id")
+        if tree_id not in PATRON_BY_TREE:
+            # only our four patron trees for this spread
+            continue
+
+        # Focus on tier-1 "entry" nodes for now
+        tier = int(node.get("tier", 1))
+        if tier != 1:
+            continue
+
+        patron = PATRON_BY_TREE[tree_id]
+        patron_favor = float(favor.get(patron, 0.0))
+
+        tags = list(node.get("tags") or [])
+        if tags:
+            short_hint = (
+                f"{patron} is watching you with interest; taking this boon nudges your story "
+                f"toward " + ", ".join(tags) + "."
+            )
+        else:
+            short_hint = f"{patron} is watching you with interest."
+
+        card: Card = {
+            "tree_id": tree_id,
+            "node_id": node.get("node_id"),
+            "name": node.get("name"),
+            "patron": patron,
+            "cost_points": 1,
+            "favor_for_patron": patron_favor,
+            "tags": tags,
+            "short_hint": short_hint,
+        }
+        cards.append(card)
+
+    # Highest favor cards first, then stable by patron/name
+    cards.sort(
+        key=lambda c: (
+            -float(c.get("favor_for_patron", 0.0)),
+            c.get("patron", ""),
+            c.get("name", ""),
+        )
+    )
+    return cards
+
+
+def attach_god_whispers(world: World, agent_name: str, cards: List[Card]) -> List[Card]:
+    """
+    Look at god reactions and add 0–2 'god_whispers' lines to each card.
+
+    We:
+    - compute_god_reactions(world, events=[])
+    - pick top_lines that mention the agent_name
+    - fall back to patron headline if nothing specific
+    """
+    reactions = compute_god_reactions(world, events=[])
+
+    enriched: List[Card] = []
+
+    for card in cards:
+        patron = card.get("patron")
+        reaction = reactions.get(patron) or {}
+        lines = reaction.get("top_lines") or []
+        headline = reaction.get("headline") or ""
+
+        whispers: List[str] = []
+
+        # Prefer lines that explicitly mention the agent
+        for line in lines:
+            if agent_name in line:
+                whispers.append(line)
+
+        # Fallback: generic headline if nothing agent-specific
+        if not whispers and headline:
+            whispers.append(headline)
+
+        card_with_whispers = dict(card)
+        if whispers:
+            card_with_whispers["god_whispers"] = whispers[:2]
+        enriched.append(card_with_whispers)
+
+    return enriched
+
+
+def main() -> None:
+    """
+    CLI demo:
+    - Build world
+    - Build level menu for Paladin & Puck
+    - Attach god whispers
+    - Dump JSON
+    """
+    world = build_world_with_favor()
+
+    paladin_raw = build_level_menu_for_agent(world, "Paladin")
+    puck_raw = build_level_menu_for_agent(world, "Puck")
+
+    paladin_spread = attach_god_whispers(world, "Paladin", paladin_raw)
+    puck_spread = attach_god_whispers(world, "Puck", puck_raw)
+
+    payload = {
         "paladin_spread": paladin_spread,
         "puck_spread": puck_spread,
     }
-
-    print(json.dumps(result, indent=2))
-    return 0
+    print(json.dumps(payload, indent=2))
 
 
 if __name__ == "__main__":
-    raise SystemExit(_demo())
+    main()
 
