@@ -1,0 +1,179 @@
+{
+  "WOLF": {
+    "id": "WOLF",
+    "name": "Wolf",
+    "cr": 0.25,
+    "base_xp": 50,
+    "role": "minion",
+    "type": "beast",
+    "tags": ["forest", "pack", "fast"],
+    "alignment_hint": "unaligned",
+    "region_tags": ["STARTING_FOREST"],
+    "behavior_hint": {
+      "default_strategy": "Copycat",
+      "aggression": 0.6,
+      "cowardice": 0.3
+    }
+  },
+  "GOBLIN_SCOUT": {
+    "id": "GOBLIN_SCOUT",
+    "name": "Goblin Scout",
+    "cr": 0.25,
+    "base_xp": 50,
+    "role": "minion",
+    "type": "humanoid",
+    "tags": ["forest", "goblin", "ranged"],
+    "alignment_hint": "neutral_evil",
+    "region_tags": ["STARTING_FOREST", "KINGDOM_BORDER"],
+    "behavior_hint": {
+      "default_strategy": "Copykitten",
+      "aggression": 0.7,
+      "cowardice": 0.5
+    }
+  },
+  "GOBLIN_BRUTE": {
+    "id": "GOBLIN_BRUTE",
+    "name": "Goblin Brute",
+    "cr": 1,
+    "base_xp": 200,
+    "role": "standard",
+    "type": "humanoid",
+    "tags": ["melee", "goblin", "brute"],
+    "alignment_hint": "neutral_evil",
+    "region_tags": ["STARTING_FOREST", "KINGDOM_BORDER"],
+    "behavior_hint": {
+      "default_strategy": "Cheater",
+      "aggression": 0.9,
+      "cowardice": 0.2
+    }
+  },
+  "BANDIT": {
+    "id": "BANDIT",
+    "name": "Bandit",
+    "cr": 0.5,
+    "base_xp": 100,
+    "role": "standard",
+    "type": "humanoid",
+    "tags": ["human", "bandit", "melee"],
+    "alignment_hint": "chaotic_neutral",
+    "region_tags": ["STARTING_FOREST", "KINGDOM_BORDER"],
+    "behavior_hint": {
+      "default_strategy": "Random",
+      "aggression": 0.5,
+      "cowardice": 0.5
+    }
+  },
+  "BANDIT_CAPTAIN": {
+    "id": "BANDIT_CAPTAIN",
+    "name": "Bandit Captain",
+    "cr": 2,
+    "base_xp": 450,
+    "role": "elite",
+    "type": "humanoid",
+    "tags": ["human", "bandit", "leader"],
+    "alignment_hint": "chaotic_neutral",
+    "region_tags": ["KINGDOM_BORDER"],
+    "behavior_hint": {
+      "default_strategy": "Detective",
+      "aggression": 0.7,
+      "cowardice": 0.3
+    }
+  },
+  "DIRE_WOLF": {
+    "id": "DIRE_WOLF",
+    "name": "Dire Wolf",
+    "cr": 1,
+    "base_xp": 200,
+    "role": "standard",
+    "type": "beast",
+    "tags": ["forest", "pack", "brute"],
+    "alignment_hint": "unaligned",
+    "region_tags": ["STARTING_FOREST", "KINGDOM_BORDER"],
+    "behavior_hint": {
+      "default_strategy": "Grudger",
+      "aggression": 0.8,
+      "cowardice": 0.2
+    }
+  },
+  "TREANT_SAPLING": {
+    "id": "TREANT_SAPLING",
+    "name": "Treant Sapling",
+    "cr": 2,
+    "base_xp": 450,
+    "role": "elite",
+    "type": "plant",
+    "tags": ["forest", "titania_touched", "guardian"],
+    "alignment_hint": "neutral_good",
+    "region_tags": ["STARTING_FOREST"],
+    "behavior_hint": {
+      "default_strategy": "Cooperator",
+      "aggression": 0.4,
+      "cowardice": 0.1
+    }
+  },
+  "FOREST_SPIRIT": {
+    "id": "FOREST_SPIRIT",
+    "name": "Forest Spirit",
+    "cr": 1,
+    "base_xp": 200,
+    "role": "controller",
+    "type": "fey",
+    "tags": ["titania", "weird", "charm"],
+    "alignment_hint": "chaotic_good",
+    "region_tags": ["STARTING_FOREST"],
+    "behavior_hint": {
+      "default_strategy": "Simpleton",
+      "aggression": 0.2,
+      "cowardice": 0.4
+    }
+  },
+  "SHADOW": {
+    "id": "SHADOW",
+    "name": "Shadow",
+    "cr": 0.5,
+    "base_xp": 100,
+    "role": "skirmisher",
+    "type": "undead",
+    "tags": ["dark", "stealth", "drain"],
+    "alignment_hint": "chaotic_evil",
+    "region_tags": ["KINGDOM_BORDER"],
+    "behavior_hint": {
+      "default_strategy": "Cheater",
+      "aggression": 0.7,
+      "cowardice": 0.1
+    }
+  },
+  "CULTIST": {
+    "id": "CULTIST",
+    "name": "Cultist",
+    "cr": 0.5,
+    "base_xp": 100,
+    "role": "standard",
+    "type": "humanoid",
+    "tags": ["cult", "spell", "weird"],
+    "alignment_hint": "chaotic_evil",
+    "region_tags": ["KINGDOM_BORDER"],
+    "behavior_hint": {
+      "default_strategy": "Random",
+      "aggression": 0.6,
+      "cowardice": 0.4
+    }
+  },
+  "CULT_FANATIC": {
+    "id": "CULT_FANATIC",
+    "name": "Cult Fanatic",
+    "cr": 2,
+    "base_xp": 450,
+    "role": "elite",
+    "type": "humanoid",
+    "tags": ["cult", "spell", "leader"],
+    "alignment_hint": "chaotic_evil",
+    "region_tags": ["KINGDOM_BORDER"],
+    "behavior_hint": {
+      "default_strategy": "Detective",
+      "aggression": 0.7,
+      "cowardice": 0.3
+    }
+  }
+}
+
