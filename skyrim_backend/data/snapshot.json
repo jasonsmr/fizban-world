@@ -1,0 +1,25 @@
+{
+  "tick": 2,
+  "npcs": {
+    "Player": {
+      "name": "Player",
+      "trust": 0.5,
+      "fear": 0.1,
+      "favor": 0.5,
+      "gossip_heat": 0.0,
+      "last_location": null,
+      "last_seen_ts": null,
+      "tags": []
+    },
+    "Puck": {
+      "name": "Puck",
+      "trust": 0.5,
+      "fear": 0.1,
+      "favor": 0.536,
+      "gossip_heat": 0.108,
+      "last_location": "Riverwood",
+      "last_seen_ts": 1765940551.6785078,
+      "tags": []
+    }
+  }
+}

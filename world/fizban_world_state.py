@@ -485,16 +485,37 @@ def world_to_dict(world: WorldState) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def _demo() -> None:
-    """Quick smoke test: load Paladin & Puck v2 and run a short script."""
+
+# ---------------------------------------------------------------------------
+# Tiny self-test and reusable world builder
+# ---------------------------------------------------------------------------
+
+
+def build_world_state() -> Dict[str, Any]:
+    """
+    Construct a default world snapshot (Paladin vs Puck) and return it
+    as a JSON-serializable dict:
+
+    {
+      "world_final": { ... agents ... },
+      "history": [ ... interaction rounds ... ],
+      "destiny": { ... last destiny roll for each ... }
+    }
+
+    This is the same logic that _demo() used to print, just returned
+    instead of printed, so other modules (level menu, enrich, etc.)
+    can import and reuse it.
+    """
     base = Path(__file__).resolve().parent
     examples = base / "examples"
 
     pal_cfg = load_agent_config(examples / "agent_paladin_v2.json")
     puck_cfg = load_agent_config(examples / "agent_puck_v2.json")
 
+    # Build initial world from configs
     world = init_world_from_configs([pal_cfg, puck_cfg])
 
+    # Simple scripted interaction history, same as before
     script = ["CC", "CC", "CC", "CD", "CC"]
 
     for oc in script:
@@ -507,6 +528,14 @@ def _demo() -> None:
         "history": world.history,
         "destiny": destiny,
     }
+    return out
+
+
+def _demo() -> None:
+    """
+    CLI smoke test: build the default world and print it as JSON.
+    """
+    out = build_world_state()
     print(json.dumps(out, indent=2, ensure_ascii=False))
 
 

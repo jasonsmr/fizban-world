@@ -1,0 +1,129 @@
+{
+  "region_id": "STARTING_FOREST",
+  "label": "Starting Forest",
+  "settlements": [
+    {
+      "id": "VILLAGE_GREENHOLLOW",
+      "name": "Greenhollow",
+      "type": "village",
+      "level_min": 1,
+      "level_soft_cap": 5,
+      "level_hard_cap": 8,
+      "tags": [
+        "village",
+        "farming",
+        "king",
+        "starting_area"
+      ],
+      "patron_focus": [
+        "King",
+        "Queen"
+      ],
+      "description": "A modest forest-edge village under the King's protection, with wooden palisades and nervous militia.",
+      "notable_features": [
+        "small_market_square",
+        "old_well",
+        "militia_barracks"
+      ]
+    },
+    {
+      "id": "SHRINE_TITANIA_HEARTROOT",
+      "name": "Heartroot Shrine",
+      "type": "shrine",
+      "level_min": 2,
+      "level_soft_cap": 7,
+      "level_hard_cap": 10,
+      "tags": [
+        "shrine",
+        "titania",
+        "forest",
+        "weird",
+        "sacred_grove"
+      ],
+      "patron_focus": [
+        "Titania",
+        "Queen"
+      ],
+      "description": "An ancient grove dominated by a massive, rune-carved heartroot tree where Titania's presence is felt strongly.",
+      "notable_features": [
+        "rune_carved_tree",
+        "glowing_motes",
+        "stone_circle",
+        "hidden_forest_spirit"
+      ]
+    },
+    {
+      "id": "CAMP_BANDIT_RED_SASH",
+      "name": "Red Sash Camp",
+      "type": "bandit_camp",
+      "level_min": 3,
+      "level_soft_cap": 8,
+      "level_hard_cap": 11,
+      "tags": [
+        "bandit",
+        "outlaw",
+        "bottom",
+        "kingdom_threat"
+      ],
+      "patron_focus": [
+        "Bottom",
+        "King"
+      ],
+      "description": "A hidden encampment of bandits wearing red sashes. They raid caravans between Greenhollow and the Kingdom Border.",
+      "notable_features": [
+        "watch_tower",
+        "prisoner_cages",
+        "hidden_tunnel"
+      ]
+    },
+    {
+      "id": "WAYSHRINE_LOVERS_BRIDGE",
+      "name": "Lovers' Wayshrine",
+      "type": "wayshrine",
+      "level_min": 1,
+      "level_soft_cap": 6,
+      "level_hard_cap": 9,
+      "tags": [
+        "lovers",
+        "romance",
+        "bridge",
+        "weird"
+      ],
+      "patron_focus": [
+        "Lovers",
+        "Queen"
+      ],
+      "description": "A small shrine built upon an old stone bridge where lovers carve their names and leave ribbons in the branches.",
+      "notable_features": [
+        "carved_initials",
+        "ribbon_tree",
+        "wish_stones"
+      ]
+    },
+    {
+      "id": "OUTPOST_BORDER_WATCH",
+      "name": "Border Watch Outpost",
+      "type": "outpost",
+      "level_min": 3,
+      "level_soft_cap": 8,
+      "level_hard_cap": 12,
+      "tags": [
+        "outpost",
+        "king",
+        "military",
+        "border"
+      ],
+      "patron_focus": [
+        "King",
+        "Oberon"
+      ],
+      "description": "A rough-hewn wooden outpost guarding the forest path toward the Kingdom Border.",
+      "notable_features": [
+        "signal_fire_brazier",
+        "archery_targets",
+        "rotating_patrols"
+      ]
+    }
+  ]
+}
+

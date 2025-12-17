@@ -1,0 +1,27 @@
+{
+  "global": {
+    "mode": "normal",
+    "world_difficulty_scalar": 1.0,
+    "world_auto_leveling": true,
+    "world_level_per_hours": 0.02
+  },
+  "regions": {
+    "STARTING_FOREST": {
+      "label": "Starting Forest",
+      "min_level": 1,
+      "soft_cap": 5,
+      "hard_cap": 8,
+      "base_cr": 1.0,
+      "cr_variance": 1.0
+    },
+    "KINGDOM_BORDER": {
+      "label": "Kingdom Border",
+      "min_level": 4,
+      "soft_cap": 10,
+      "hard_cap": 14,
+      "base_cr": 3.0,
+      "cr_variance": 3.0
+    }
+  }
+}
+

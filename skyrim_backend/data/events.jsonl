@@ -1,0 +1,2 @@
+{"event_id": "test-002", "t": "DIALOGUE", "actor": "Player", "target": "Puck", "location": "Riverwood", "tags": ["gossip", "friendly"], "intensity": 0.9, "payload": {"line": "Who’s lying to me?"}, "ts_unix": 1765938207.0958734}
+{"event_id": "test-002", "t": "DIALOGUE", "actor": "Player", "target": "Puck", "location": "Riverwood", "tags": ["gossip", "friendly"], "intensity": 0.9, "payload": {"line": "Who’s lying to me?"}, "ts_unix": 1765940551.6785078}
