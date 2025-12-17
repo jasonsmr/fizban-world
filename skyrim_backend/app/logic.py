@@ -153,3 +153,51 @@ def realm_ingest(req: Any) -> Dict[str, Any]:
         return realm.ingest(req)
 
     return {"ok": True, "note": "realm_ingest stub (no realm.ingest() yet)"}
+
+# ---------------------------------------------------------------------------
+# Compat helper: main.py expects logic.ensure_agent(world, name)
+# ---------------------------------------------------------------------------
+def ensure_agent(world, name: str):
+    """
+    Ensure an agent/NPC exists in world state. Returns the agent object.
+    Supports worlds implemented as:
+      - world.ensure_agent(name) method, OR
+      - world.npcs dict-like container
+    """
+    # Preferred: world provides its own method
+    try:
+        fn = getattr(world, "ensure_agent", None)
+        if callable(fn):
+            return fn(name)
+    except Exception:
+        pass
+
+    # Fallback: create in world.npcs
+    npcs = getattr(world, "npcs", None)
+    if npcs is None:
+        raise AttributeError("World has no ensure_agent() and no .npcs container")
+
+    if name in npcs:
+        return npcs[name]
+
+    # Try to use a typed model if your models.py provides it
+    try:
+        from .models import NPCState  # optional
+        npc = NPCState(name=name)
+    except Exception:
+        npc = {
+            "name": name,
+            "trust": 0.5,
+            "fear": 0.1,
+            "favor": 0.5,
+            "gossip_heat": 0.0,
+            "last_location": "Unknown",
+            "last_seen_ts": 0.0,
+            "tags": [],
+            "faction": {},
+            "divine": {},
+            "daedra": {},
+        }
+
+    npcs[name] = npc
+    return npc
