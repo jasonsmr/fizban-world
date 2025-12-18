@@ -1,165 +1,116 @@
 from __future__ import annotations
 
-from fastapi import FastAPI
-from pydantic import BaseModel, Field
+import os
+import uuid
 from typing import Any, Dict, List, Optional
 
-from .state import WORLD
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
+
 from . import logic
-from .realm import RealmSelectionIn, RealmSelectionOut, RealmEffect
+from .compat import format_exception_payload, get_attr_or_key
+from .state import WORLD  # keep your singleton world
 
 
-app = FastAPI(title="Fizban Skyrim Backend", version="0.1.0")
+DEBUG = os.getenv("FIZBAN_DEBUG", "1") == "1"
+
+app = FastAPI(title="Fizban Skyrim Backend", version="0.2.0")
+
+
+@app.middleware("http")
+async def trace_mw(request: Request, call_next):
+    trace_id = request.headers.get("x-trace-id") or uuid.uuid4().hex[:12]
+    request.state.trace_id = trace_id
+    resp = await call_next(request)
+    resp.headers["x-trace-id"] = trace_id
+    return resp
+
+
+@app.exception_handler(Exception)
+async def any_exception_handler(request: Request, exc: Exception):
+    trace_id = getattr(request.state, "trace_id", "no-trace")
+    payload = format_exception_payload(exc, trace_id=trace_id, debug=DEBUG)
+    return JSONResponse(status_code=500, content=payload)
 
 
 class HealthOut(BaseModel):
     ok: bool = True
-    tick: int
-    agents: List[str]
+    tick: int = 0
+    agents: List[str] = Field(default_factory=list)
 
 
-class FavorApplyIn(BaseModel):
-    actor: str
-    channel: str = Field(..., description="divine|daedra|faction|global")
-    key: str
-    delta: float
-    reason: str = "unknown"
-
-
-class FavorApplyOut(BaseModel):
-    ok: bool = True
-    actor: str
+class EffectIn(BaseModel):
     channel: str
-    key: str
-    new: Dict[str, Any]
+    key: Optional[str] = None
+    delta: float = 0.0
+    tag: Optional[str] = None
+    note: Optional[str] = None
 
 
-class GossipItem(BaseModel):
-    rumor_id: str
-    about: str
-    claim: str
-    truthiness: float = 0.5
-    heat: float = 0.5
-    origin: str
-    location: str
-    tags: List[str] = []
-
-
-class GossipPropIn(BaseModel):
-    source: str
-    receivers: List[str]
-    strength: float = 0.5
-    item: GossipItem
-
-
-class GossipPropOut(BaseModel):
-    ok: bool = True
-    rumor_id: str
-    receivers: List[str]
-    tick: int
-
-
-class SkyrimEventIn(BaseModel):
-    event_id: str
-    t: str
-    ts_unix: Optional[float] = None
+class RealmSelectionIn(BaseModel):
     actor: str
-    target: Optional[str] = None
-    location: str = "Unknown"
-    tags: List[str] = []
-    intensity: float = 0.5
-    payload: Dict[str, Any] = {}
+    selection_id: str
+    location: str
+    effects: List[EffectIn] = Field(default_factory=list)
+    tags: List[str] = Field(default_factory=list)
+
+
+class AppliedEffectOut(BaseModel):
+    channel: str
+    key: Optional[str] = None
+    delta: float = 0.0
+    tag: Optional[str] = None
+    note: Optional[str] = None
+
+
+class RealmSelectionOut(BaseModel):
+    ok: bool = True
+    actor: str
+    selection_id: str
+    applied: List[AppliedEffectOut] = Field(default_factory=list)
+    tick: int = 0
 
 
 @app.get("/health", response_model=HealthOut)
-def health():
-    return HealthOut(ok=True, tick=WORLD.tick, agents=sorted(list(WORLD.agents.keys())))
+def health() -> HealthOut:
+    tick = get_attr_or_key(WORLD, "tick", 0)
+    try:
+        tick_i = int(tick)
+    except Exception:
+        tick_i = 0
+    return HealthOut(ok=True, tick=tick_i, agents=logic.list_agents(WORLD))
 
 
 @app.get("/npc/{name}")
-def npc_get(name: str):
-    a = logic.ensure_agent(WORLD, name)
-    return a.model_dump()
-
-
-@app.post("/decide")
-def decide(ev: SkyrimEventIn):
-    # ensure involved agents exist
-    logic.ensure_agent(WORLD, ev.actor)
-    if ev.target:
-        logic.ensure_agent(WORLD, ev.target)
-
-    out = logic.decide(WORLD, ev.model_dump())
-    return out
-
-
-@app.post("/favor/apply", response_model=FavorApplyOut)
-def favor_apply(req: FavorApplyIn):
-    logic.ensure_agent(WORLD, req.actor)
-    logic.apply_favor(WORLD, req.actor, req.channel, req.key, req.delta, req.reason)
-    return FavorApplyOut(ok=True, actor=req.actor, channel=req.channel, key=req.key, new=logic.get_agent(WORLD, req.actor).model_dump())
-
-
-@app.post("/gossip/propagate", response_model=GossipPropOut)
-def gossip_prop(req: GossipPropIn):
-    logic.ensure_agent(WORLD, req.source)
-    for r in req.receivers:
-        logic.ensure_agent(WORLD, r)
-    logic.propagate_gossip(WORLD, req.source, req.receivers, req.strength, req.item.model_dump())
-    return GossipPropOut(ok=True, rumor_id=req.item.rumor_id, receivers=req.receivers, tick=WORLD.tick)
+def npc_get(name: str) -> Dict[str, Any]:
+    a = logic.get_agent(WORLD, name)
+    return dict(a)
 
 
 @app.post("/realm/selection", response_model=RealmSelectionOut)
-def realm_selection(req: RealmSelectionIn):
-    """
-    Adapter: in-game start-room choices -> world state changes.
-    Your Skyrim mod can call this once per “shrine / guild / pact / race affinity” selection.
-    """
-    logic.ensure_agent(WORLD, req.actor)
-
-    applied: List[RealmEffect] = []
-    # Apply effects
-    for eff in req.effects:
-        ch = eff.channel.lower().strip()
-        if ch in ("divine", "daedra", "faction"):
-            if not eff.key:
-                continue
-            logic.apply_favor(WORLD, req.actor, ch, eff.key, eff.delta, eff.note or req.selection_id)
-            applied.append(eff)
-        elif ch == "tag":
-            if eff.tag:
-                a = logic.get_agent(WORLD, req.actor)
-                if eff.tag not in a.tags:
-                    a.tags.append(eff.tag)
-                applied.append(eff)
-        elif ch == "trust":
-            a = logic.get_agent(WORLD, req.actor)
-            a.trust = max(0.0, min(1.0, a.trust + eff.delta))
-            applied.append(eff)
-        elif ch == "fear":
-            a = logic.get_agent(WORLD, req.actor)
-            a.fear = max(0.0, min(1.0, a.fear + eff.delta))
-            applied.append(eff)
-        elif ch == "favor":
-            a = logic.get_agent(WORLD, req.actor)
-            a.favor = max(0.0, min(1.0, a.favor + eff.delta))
-            applied.append(eff)
-
-    # Apply request-level tags
-    if req.tags:
-        a = logic.get_agent(WORLD, req.actor)
-        for t in req.tags:
-            t = t.strip()
-            if t and t not in a.tags:
-                a.tags.append(t)
-
-    a = logic.get_agent(WORLD, req.actor)
-    a.last_location = req.location
-
+def realm_selection(req: RealmSelectionIn) -> RealmSelectionOut:
+    applied, tick = logic.apply_realm_selection(
+        WORLD,
+        actor=req.actor,
+        selection_id=req.selection_id,
+        location=req.location,
+        effects=[e.model_dump() if hasattr(e, "model_dump") else e.dict() for e in req.effects],
+        tags=req.tags,
+    )
     return RealmSelectionOut(
         ok=True,
         actor=req.actor,
         selection_id=req.selection_id,
-        applied=applied,
-        tick=WORLD.tick,
+        applied=[
+            AppliedEffectOut(
+                channel=a.channel,
+                key=a.key,
+                delta=a.delta,
+                tag=a.tag,
+                note=a.note,
+            )
+            for a in applied
+        ],
+        tick=tick,
     )
