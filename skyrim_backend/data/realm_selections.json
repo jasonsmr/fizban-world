@@ -1,0 +1,11 @@
+{
+  "realm_shrine_akatosh": {
+    "effects": [
+      {"channel":"divine","key":"Akatosh","delta":0.10,"note":"start_shrine"},
+      {"channel":"faction","key":"Companions","delta":0.05,"note":"start_affinity"},
+      {"channel":"tag","tag":"alternate_start","delta":0.0,"note":"flag"}
+    ],
+    "tags": ["test_room"]
+  }
+}
+

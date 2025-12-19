@@ -1,0 +1,10 @@
+{
+  "id": "rainbow_bridge",
+  "version": "0.1.0",
+  "requires_backend": ">=0.3.0",
+  "provides": [
+    "cap:travel_provider",
+    "travel:RainbowBridge"
+  ],
+  "entrypoint": "addons.rainbow_bridge.entry:register"
+}

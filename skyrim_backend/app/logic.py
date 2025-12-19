@@ -1,128 +1,146 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, MutableMapping, Optional, Tuple
 
 from .compat import (
+    bump_tick,
     ensure_dict_field,
-    find_first_mapping_field,
+    ensure_list_field,
     get_attr_or_key,
-    model_to_dict,
     now_ts,
+    set_attr_or_key,
 )
 
 
-class AttrDict(dict):
-    """dict with attribute access (a.tags == a['tags'])."""
-    def __getattr__(self, k: str) -> Any:
-        try:
-            return self[k]
-        except KeyError as e:
-            raise AttributeError(k) from e
-
-    def __setattr__(self, k: str, v: Any) -> None:
-        self[k] = v
+# -----------------------------
+# Agents container discovery
+# -----------------------------
+_AGENT_FIELD_CANDIDATES = ("agents", "npcs", "characters")
 
 
-_AGENT_MAP_CANDIDATES = (
-    "agents",
-    "npcs",
-    "actors",
-    "characters",
-    "people",
-    "entities",
-)
-
-# If your WorldState stores nested structures, we can extend this later:
-_NESTED_CONTAINER_CANDIDATES = (
-    "state",
-    "world",
-    "data",
-    "store",
-)
+def _is_mutable_mapping(x: Any) -> bool:
+    try:
+        return isinstance(x, MutableMapping)
+    except Exception:
+        return False
 
 
-def _coerce_agent_obj(x: Any) -> AttrDict:
-    if isinstance(x, AttrDict):
-        return x
+def _as_agent_dict(x: Any) -> Dict[str, Any]:
+    """
+    Normalize a single "agent" representation into a dict.
+    Accepts:
+      - dict-like
+      - string (name)
+      - object with .name or mapping key "name"
+    """
+    if x is None:
+        return {"name": "Unknown"}
     if isinstance(x, dict):
-        return AttrDict(x)
-    # pydantic/dataclass/object
-    d = model_to_dict(x)
-    if isinstance(d, dict):
-        return AttrDict(d)
-    return AttrDict({"value": d})
+        return dict(x)
+    if isinstance(x, str):
+        return {"name": x}
+    name = get_attr_or_key(x, "name", None)
+    if isinstance(name, str) and name:
+        # try a shallow vars() dump if possible
+        try:
+            d = dict(vars(x))
+            d.setdefault("name", name)
+            return d
+        except Exception:
+            return {"name": name}
+    # fallback
+    return {"name": "Unknown"}
 
 
-def _default_agent(name: str) -> AttrDict:
-    return AttrDict({
-        "name": name,
-        "trust": 0.5,
-        "fear": 0.1,
-        "favor": 0.5,
-        "gossip_heat": 0.0,
-        "last_location": "Unknown",
-        "last_seen_ts": now_ts(),
-        "tags": [],
-        "faction": {},
-        "divine": {},
-        "daedra": {},
-    })
-
-
-def _find_agents_map(world: Any) -> Tuple[Dict[str, Any], str]:
+def _normalize_agents_value(world: Any, field_name: str, value: Any) -> Dict[str, Dict[str, Any]]:
     """
-    Returns (agents_map, where_string).
-    Supports:
-      - world as dict
-      - world with .agents/.npcs/.actors...
-      - world with nested container (world.state.agents, etc) [basic]
+    Convert whatever world.<field_name> is into a dict: {name: agent_dict}.
+    If possible, write it back into the world so future reads are stable.
     """
-    if world is None:
-        raise TypeError("world is None")
+    # Case 1: already a mapping {name: agent}
+    if isinstance(value, dict):
+        out: Dict[str, Dict[str, Any]] = {}
+        for k, v in value.items():
+            nm = str(k)
+            out[nm] = _as_agent_dict(v)
+            out[nm].setdefault("name", nm)
+        # persist normalized dict
+        set_attr_or_key(world, field_name, out)
+        return out
 
-    # Direct mapping world
-    if isinstance(world, dict):
-        hit = find_first_mapping_field(world, _AGENT_MAP_CANDIDATES)
-        if hit:
-            k, m = hit
-            # write back to keep it a real dict
-            world[k] = m
-            return world[k], f"world['{k}']"
-        raise TypeError("Unsupported world dict: could not locate agents/npcs/actors map")
+    if _is_mutable_mapping(value):
+        # mutable mapping but not a plain dict; normalize to dict and persist
+        out2: Dict[str, Dict[str, Any]] = {}
+        try:
+            for k, v in value.items():  # type: ignore[attr-defined]
+                nm = str(k)
+                out2[nm] = _as_agent_dict(v)
+                out2[nm].setdefault("name", nm)
+        except Exception:
+            out2 = {}
+        set_attr_or_key(world, field_name, out2)
+        return out2
 
-    # Direct attribute
-    hit = find_first_mapping_field(world, _AGENT_MAP_CANDIDATES)
-    if hit:
-        k, m = hit
-        # ensure it's a real dict stored on the object
-        stored = ensure_dict_field(world, k)
-        stored.clear()
-        stored.update(m)
-        return stored, f"world.{k}"
+    # Case 2: list/tuple/etc
+    if isinstance(value, (list, tuple)):
+        out3: Dict[str, Dict[str, Any]] = {}
+        for item in value:
+            ad = _as_agent_dict(item)
+            nm = str(ad.get("name") or "Unknown")
+            if not nm or nm == "Unknown":
+                # skip nameless entries
+                continue
+            out3[nm] = ad
+        # persist normalized dict
+        set_attr_or_key(world, field_name, out3)
+        return out3
 
-    # Nested container (one level)
-    for container_name in _NESTED_CONTAINER_CANDIDATES:
-        container = get_attr_or_key(world, container_name, None)
-        if container is None:
+    # Case 3: missing / unknown type -> empty dict
+    out4: Dict[str, Dict[str, Any]] = {}
+    set_attr_or_key(world, field_name, out4)
+    return out4
+
+
+def _find_agents_map(world: Any) -> Tuple[Dict[str, Dict[str, Any]], str]:
+    """
+    Return (agents_dict, where_string).
+    This function NEVER returns a non-dict agents container.
+    """
+    # Try known fields
+    for fname in _AGENT_FIELD_CANDIDATES:
+        val = get_attr_or_key(world, fname, None)
+        if val is None:
             continue
-        # recurse one level only (keeps behavior predictable)
-        if isinstance(container, dict):
-            hit2 = find_first_mapping_field(container, _AGENT_MAP_CANDIDATES)
-            if hit2:
-                k2, m2 = hit2
-                container[k2] = dict(m2)
-                return container[k2], f"world.{container_name}['{k2}']"
-        else:
-            hit2 = find_first_mapping_field(container, _AGENT_MAP_CANDIDATES)
-            if hit2:
-                k2, m2 = hit2
-                stored2 = ensure_dict_field(container, k2)
-                stored2.clear()
-                stored2.update(m2)
-                return stored2, f"world.{container_name}.{k2}"
 
-    raise TypeError(f"Unsupported world type: {type(world)} (could not locate agents/npcs/actors map)")
+        # Accept dict/mapping/list/tuple; normalize all of them
+        if isinstance(val, (dict, list, tuple)) or _is_mutable_mapping(val):
+            agents = _normalize_agents_value(world, fname, val)
+            return agents, f"world.{fname}"
+
+    # If nothing found, create world.agents
+    agents = _normalize_agents_value(world, "agents", None)
+    return agents, "world.agents(created)"
+
+
+# -----------------------------
+# Agent shape helpers
+# -----------------------------
+def _ensure_agent_shape(agent: Dict[str, Any]) -> Dict[str, Any]:
+    agent.setdefault("name", "Unknown")
+    agent.setdefault("trust", 0.5)
+    agent.setdefault("fear", 0.1)
+    agent.setdefault("favor", 0.5)
+    agent.setdefault("gossip_heat", 0.0)
+    agent.setdefault("last_location", "Unknown")
+    agent.setdefault("last_seen_ts", now_ts())
+
+    # containers
+    if not isinstance(agent.get("tags"), list):
+        agent["tags"] = []
+    for ch in ("faction", "divine", "daedra"):
+        if not isinstance(agent.get(ch), dict):
+            agent[ch] = {}
+    return agent
 
 
 def list_agents(world: Any) -> List[str]:
@@ -130,66 +148,62 @@ def list_agents(world: Any) -> List[str]:
     return sorted(list(agents.keys()))
 
 
-def ensure_agent(world: Any, name: str, seed: Optional[Dict[str, Any]] = None) -> AttrDict:
+def get_agent(world: Any, name: str) -> Dict[str, Any]:
     agents, _where = _find_agents_map(world)
-    if name not in agents:
-        agents[name] = dict(seed) if seed else dict(_default_agent(name))
-    a = _coerce_agent_obj(agents[name])
-    # write back coerced dict so next call is stable
-    agents[name] = dict(a)
-
-    # normalize common fields to avoid future breakage
-    if "name" not in agents[name]:
-        agents[name]["name"] = name
-    if not isinstance(agents[name].get("tags", []), list):
-        agents[name]["tags"] = list(agents[name].get("tags") or [])
-    for bucket in ("faction", "divine", "daedra"):
-        if not isinstance(agents[name].get(bucket, {}), dict):
-            agents[name][bucket] = dict(agents[name].get(bucket) or {})
-
-    return _coerce_agent_obj(agents[name])
+    if name not in agents or not isinstance(agents.get(name), dict):
+        agents[name] = _ensure_agent_shape({"name": name})
+    else:
+        agents[name] = _ensure_agent_shape(agents[name])
+    # touch "last seen"
+    agents[name]["last_seen_ts"] = now_ts()
+    return agents[name]
 
 
-def get_agent(world: Any, name: str) -> AttrDict:
-    return ensure_agent(world, name)
+# -----------------------------
+# Realm selection application
+# -----------------------------
+def _apply_effect(agent: Dict[str, Any], eff: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """
+    Apply a single effect dict to an agent.
+    Returns a normalized applied-effect payload (for API output), or None to skip.
+    """
+    channel = str(eff.get("channel") or "").strip()
+    key = eff.get("key", None)
+    tag = eff.get("tag", None)
+    note = eff.get("note", None)
 
-
-@dataclass
-class AppliedEffect:
-    channel: str
-    key: Optional[str]
-    delta: float
-    tag: Optional[str]
-    note: Optional[str]
-
-
-def apply_effect(agent: AttrDict, eff: Dict[str, Any]) -> AppliedEffect:
-    ch = str(eff.get("channel") or "")
-    key = eff.get("key")
-    tag = eff.get("tag")
-    note = eff.get("note")
     try:
-        delta = float(eff.get("delta", 0.0))
+        delta = float(eff.get("delta", 0.0) or 0.0)
     except Exception:
         delta = 0.0
 
-    if ch == "tag":
-        if tag:
-            if tag not in agent.tags:
-                agent.tags.append(tag)
-        return AppliedEffect(channel="tag", key=None, delta=delta, tag=tag, note=note)
+    if not channel:
+        return None
 
-    if ch in ("divine", "daedra", "faction"):
-        bucket = agent.get(ch, {})
-        if not isinstance(bucket, dict):
-            bucket = {}
-            agent[ch] = bucket
-        if key:
-            bucket[key] = float(bucket.get(key, 0.0)) + delta
-        return AppliedEffect(channel=ch, key=key, delta=delta, tag=None, note=note)
+    # tag channel -> add tag string to tags list
+    if channel == "tag":
+        t = str(tag or eff.get("key") or "").strip()
+        if t:
+            if t not in agent["tags"]:
+                agent["tags"].append(t)
+        return {"channel": "tag", "key": None, "delta": 0.0, "tag": t or None, "note": note}
 
-    # unknown channel: no-op but report it
-    return AppliedEffect(channel=ch, key=key, delta=delta, tag=tag, note=note)
+    # other channels -> numeric accumulators in dict fields
+    if channel not in ("faction", "divine", "daedra"):
+        # unknown channel; ignore but report
+        return {"channel": channel, "key": str(key) if key is not None else None, "delta": delta, "tag": None, "note": note}
+
+    if key is None:
+        return None
+
+    k = str(key)
+    bucket = agent[channel]
+    try:
+        cur = float(bucket.get(k, 0.0) or 0.0)
+    except Exception:
+        cur = 0.0
+    bucket[k] = cur + delta
+    return {"channel": channel, "key": k, "delta": delta, "tag": None, "note": note}
 
 
 def apply_realm_selection(
@@ -197,28 +211,32 @@ def apply_realm_selection(
     actor: str,
     selection_id: str,
     location: str,
-    effects: List[Dict[str, Any]],
-    tags: List[str],
-) -> Tuple[List[AppliedEffect], int]:
-    a = ensure_agent(world, actor)
-    if location:
-        a["last_location"] = location
+    effects: Optional[List[Dict[str, Any]]] = None,
+    tags: Optional[List[str]] = None,
+) -> Tuple[List[Dict[str, Any]], int]:
+    """
+    Core application of a "realm selection" event.
+    Returns (applied_effects, tick_int).
+    """
+    a = get_agent(world, actor)
+    a["last_location"] = str(location or a.get("last_location") or "Unknown")
     a["last_seen_ts"] = now_ts()
 
-    # apply request tags (top-level)
-    for t in tags or []:
-        if t and t not in a.tags:
-            a.tags.append(t)
+    # attach any request tags
+    if tags:
+        for t in tags:
+            ts = str(t).strip()
+            if ts and ts not in a["tags"]:
+                a["tags"].append(ts)
 
-    applied: List[AppliedEffect] = []
-    for eff in effects or []:
-        applied.append(apply_effect(a, eff))
+    applied: List[Dict[str, Any]] = []
+    if effects:
+        for e in effects:
+            if not isinstance(e, dict):
+                continue
+            out = _apply_effect(a, e)
+            if out is not None:
+                applied.append(out)
 
-    # bump tick if present; if absent, keep 0 but don't crash
-    tick = get_attr_or_key(world, "tick", 0)
-    try:
-        tick_i = int(tick)
-    except Exception:
-        tick_i = 0
-    return applied, tick_i
-
+    tick = bump_tick(world, 1)
+    return applied, tick

@@ -8,9 +8,8 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from . import addons
 from . import logic
-from . import travel as travel_logic
+from . import addons
 from .compat import format_exception_payload, get_attr_or_key, safe_model_dump
 from .state import WORLD
 from .version import __version__
@@ -80,21 +79,18 @@ class RealmSelectionOut(BaseModel):
 @app.on_event("startup")
 def _startup_load_addons():
     global ADDON_REGISTRY
-    # pass compat module itself to addons (so addons can use compat helpers)
-    compat_mod = __import__("app.compat", fromlist=["*"])
-    ADDON_REGISTRY = addons.load_addons(app=app, world=WORLD, compat=compat_mod)
+    ADDON_REGISTRY = addons.load_addons(app=app, world=WORLD, compat=__import__("app.compat", fromlist=["*"]))
 
 
 @app.get("/addons")
 def addons_list():
     reg = ADDON_REGISTRY
-    enabled = (os.environ.get("FIZBAN_ADDONS") or "").strip()
     if not reg:
-        return {"ok": True, "backend_version": __version__, "enabled": enabled, "addons": {}, "errors": {}, "loaded_at": None}
+        return {"ok": True, "enabled": (os.environ.get("FIZBAN_ADDONS") or "").strip(), "addons": {}, "errors": {}}
     return {
         "ok": True,
         "backend_version": __version__,
-        "enabled": enabled,
+        "enabled": (os.environ.get("FIZBAN_ADDONS") or "").strip(),
         "addons": {k: vars(v) for k, v in reg.addons.items()},
         "errors": reg.load_errors,
         "loaded_at": reg.loaded_at,
@@ -160,14 +156,13 @@ def realm_selection(req: RealmSelectionIn) -> RealmSelectionOut:
         hook_errors=hook_errors,
     )
 
-
 # ---- Travel API (core) ----
+from . import travel as travel_logic
 
 class TravelOptionsOut(BaseModel):
     ok: bool = True
     from_location: str
     options: List[Dict[str, Any]] = Field(default_factory=list)
-
 
 class TravelGoIn(BaseModel):
     actor: str
@@ -175,54 +170,58 @@ class TravelGoIn(BaseModel):
     to_location: str
     lane: Optional[str] = None
 
-
-def _get_travel_providers() -> List[Any]:
-    """
-    Providers are registered by addons into ADDON_REGISTRY.registry.travel_providers
-    """
-    reg = ADDON_REGISTRY
-    if not reg:
-        return []
-    r = getattr(reg, "registry", None)
-    if not r:
-        return []
-    try:
-        return list(getattr(r, "travel_providers", [])) or []
-    except Exception:
-        return []
-
-
 @app.get("/travel/options", response_model=TravelOptionsOut)
 def travel_options(from_location: str) -> TravelOptionsOut:
-    providers = _get_travel_providers()
-    opts = travel_logic.list_options(WORLD, from_location=from_location, providers=providers)
+    reg = getattr(ADDON_REGISTRY, "registry", None) if hasattr(ADDON_REGISTRY, "registry") else None
+    providers = []
+    try:
+        providers = list(getattr(reg, "travel_providers", [])) if reg else []
+    except Exception:
+        providers = []
+    opts = travel_logic.list_travel_options(WORLD, from_location, providers)
     return TravelOptionsOut(ok=True, from_location=from_location, options=opts)
-
 
 @app.post("/travel/go")
 def travel_go(req: TravelGoIn) -> Dict[str, Any]:
-    providers = _get_travel_providers()
+    reg = getattr(ADDON_REGISTRY, "registry", None) if hasattr(ADDON_REGISTRY, "registry") else None
+    providers = []
+    try:
+        providers = list(getattr(reg, "travel_providers", [])) if reg else []
+    except Exception:
+        providers = []
     return travel_logic.apply_travel(
+        WORLD,
+        actor=req.actor,
+        src=req.from_location,
+        dst=req.to_location,
+        providers=providers,
+        lane=req.lane,
+    )
+
+from . import travel
+
+class TravelOptionsOut(BaseModel):
+    ok: bool = True
+    from_location: str
+    options: List[Dict[str, Any]] = Field(default_factory=list)
+
+class TravelGoIn(BaseModel):
+    actor: str
+    from_location: str
+    to_location: str
+    lane: Optional[str] = None
+
+@app.get("/travel/options", response_model=TravelOptionsOut)
+def travel_options(from_location: str) -> TravelOptionsOut:
+    opts = travel.list_options(WORLD, from_location=from_location)
+    return TravelOptionsOut(ok=True, from_location=from_location, options=opts)
+
+@app.post("/travel/go")
+def travel_go(req: TravelGoIn) -> Dict[str, Any]:
+    return travel.apply_travel(
         WORLD,
         actor=req.actor,
         from_location=req.from_location,
         to_location=req.to_location,
         lane=req.lane,
-        providers=providers,
     )
-
-
-@app.get("/travel/where")
-def travel_where(actor: str = "Player") -> Dict[str, Any]:
-    return {
-        "ok": True,
-        "actor": actor,
-        "location": travel_logic.get_actor_location(WORLD, actor, default="Unknown"),
-    }
-
-@app.get("/travel/log")
-def travel_log(limit: int = 50) -> Dict[str, Any]:
-    log = travel_logic.get_travel_log(WORLD)
-    if limit and limit > 0:
-        log = log[-int(limit):]
-    return {"ok": True, "events": log}

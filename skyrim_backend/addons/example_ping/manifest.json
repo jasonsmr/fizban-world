@@ -1,0 +1,7 @@
+{
+  "id": "example_ping",
+  "version": "0.1.0",
+  "requires_backend": ">=0.1.0",
+  "provides": ["route:/ping", "cap:debug"],
+  "entrypoint": "addons.example_ping.entry:register"
+}
