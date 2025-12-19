@@ -3,6 +3,10 @@ set -euo pipefail
 
 base="${1:-http://127.0.0.1:8000}"
 
+need() { command -v "$1" >/dev/null 2>&1 || { echo "[FAIL] missing tool: $1" >&2; exit 1; }; }
+need curl
+need jq
+
 echo "[1] health"
 curl -fsS "$base/health" | jq .
 
@@ -25,21 +29,22 @@ curl -fsS -X POST "$base/realm/selection" \
   }' | jq .
 
 echo "[4] travel options (RainbowBridge)"
-curl -sS 'http://127.0.0.1:8000/travel/options?from_location=RainbowBridge' | jq
+opts_json="$(curl -fsS "$base/travel/options?from_location=RainbowBridge")"
+echo "$opts_json" | jq .
+opt_count="$(echo "$opts_json" | jq -r '.options | length')"
+test "$opt_count" -gt 0 || { echo "[FAIL] travel/options returned 0 options" >&2; exit 1; }
+echo "[OK] travel/options has $opt_count options"
 
 echo "[5] travel go (RainbowBridge -> Whiterun, gold)"
-curl -sS -X POST 'http://127.0.0.1:8000/travel/go' \
+go_json="$(curl -fsS -X POST "$base/travel/go" \
   -H 'Content-Type: application/json' \
-  -d '{"actor":"Player","from_location":"RainbowBridge","to_location":"Whiterun","lane":"gold"}' | jq
-
-ok="$(curl -sS -X POST 'http://127.0.0.1:8000/travel/go' \
-  -H 'Content-Type: application/json' \
-  -d '{"actor":"Player","from_location":"RainbowBridge","to_location":"Whiterun","lane":"gold"}' \
-  | jq -r '.ok')"
-test "$ok" = "true" || { echo "[FAIL] travel/go failed"; exit 1; }
+  -d '{"actor":"Player","from_location":"RainbowBridge","to_location":"Whiterun","lane":"gold"}')"
+echo "$go_json" | jq .
+ok="$(echo "$go_json" | jq -r '.ok')"
+test "$ok" = "true" || { echo "[FAIL] travel/go failed" >&2; exit 1; }
 echo "[OK] travel/go ok"
 
 echo "[6] travel where (Player)"
-curl -sS 'http://127.0.0.1:8000/travel/where?actor=Player' | jq
+curl -fsS "$base/travel/where?actor=Player" | jq .
 
 echo "[OK] smoke passed"
