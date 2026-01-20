@@ -1,0 +1,17 @@
+{
+  "schema": "fizban.npc_state.v0.1",
+  "npcs": [
+    {
+      "npc_id": "npc.local.watcher",
+      "faction_id": "xi.faction.local",
+      "trust": 100,
+      "fear": 36,
+      "respect": 24,
+      "curiosity": 77,
+      "intent": "neutral",
+      "memory_tags": [
+        "FACT_ECHO_RULE_CONFIRMED"
+      ]
+    }
+  ]
+}

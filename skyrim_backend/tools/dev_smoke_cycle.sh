@@ -1,55 +1,60 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-base="${BASE_URL:-http://127.0.0.1:8000}"
-host="${HOST:-127.0.0.1}"
-port="${PORT:-8000}"
+BASE_URL="${BASE_URL:-http://127.0.0.1:8000}"
+TMPROOT="${TMP:-${TMPDIR:-$HOME/tmp}}"
+mkdir -p "$TMPROOT"
+LOGFILE="$TMPROOT/fizban_uvicorn.log"
 
-# enable addons by default for this cycle
-export FIZBAN_ADDONS="${FIZBAN_ADDONS:-all}"
+RUN_CMD="${RUN_CMD:-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --log-level info}"
 
-# If user has their own venv runner, they can set RUN_CMD.
-# Otherwise we default to uvicorn directly (assuming venv already active).
-run_cmd="${RUN_CMD:-python -m uvicorn app.main:app --host $host --port $port --log-level info}"
+echo "[RUN] starting server: $RUN_CMD"
+echo "[LOG] $LOGFILE"
 
-need() { command -v "$1" >/dev/null 2>&1 || { echo "[FAIL] missing tool: $1" >&2; exit 1; }; }
-need curl
-need jq
+bash -lc "$RUN_CMD" >"$LOGFILE" 2>&1 &
+pid="$!"
 
 cleanup() {
-  if [[ -n "${uv_pid:-}" ]] && kill -0 "$uv_pid" >/dev/null 2>&1; then
-    kill "$uv_pid" >/dev/null 2>&1 || true
-    wait "$uv_pid" >/dev/null 2>&1 || true
-  fi
+  echo "[CLEANUP] stopping server pid=$pid"
+  kill "$pid" >/dev/null 2>&1 || true
+  wait "$pid" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
-echo "[RUN] starting server: $run_cmd"
-bash -lc "$run_cmd" >$TMP/fizban_uvicorn.log 2>&1 &
-uv_pid="$!"
-
-echo "[WAIT] $base/health"
-for i in $(seq 1 40); do
-  if curl -fsS "$base/health" >/dev/null 2>&1; then
+echo "[WAIT] $BASE_URL/health"
+for i in $(seq 1 80); do
+  if curl -fsS "$BASE_URL/health" 2>/dev/null 2>&1; then
     echo "[OK] server is up"
     break
   fi
-  sleep 0.25
+
+  sleep 0.2
+
+  if ! kill -0 "$pid" >/dev/null 2>&1; then
+    echo "[FAIL] server died early; tail log:"
+    tail -n 200 "$LOGFILE" || true
+    exit 1
+  fi
+
+  if [ "$i" -eq 80 ]; then
+    echo "[FAIL] server never became healthy; tail log:"
+    tail -n 200 "$LOGFILE" || true
+    exit 1
+  fi
 done
 
-if ! curl -fsS "$base/health" >/dev/null 2>&1; then
-  echo "[FAIL] server did not become healthy"
-  echo "---- uvicorn log ----"
-  tail -200 $TMP/fizban_uvicorn.log || true
+echo "[TEST] api_contract_check"
+if ! ./tools/api_contract_check.sh "$BASE_URL"; then
+  echo "[FAIL] contract check failed; tail log:"
+  tail -n 240 "$LOGFILE" || true
   exit 1
 fi
 
-echo "[TEST] api_contract_check"
-if [[ -x tools/api_contract_check.sh ]]; then
-  tools/api_contract_check.sh "$base"
-else
-  echo "[WARN] tools/api_contract_check.sh not found or not executable"
+echo "[TEST] smoke_api"
+if ! ./tools/smoke_api.sh "$BASE_URL"; then
+  echo "[FAIL] smoke_api failed; tail log:"
+  tail -n 240 "$LOGFILE" || true
+  exit 1
 fi
 
-echo "[TEST] smoke_api"
-tools/smoke_api.sh "$base"
+echo "[OK] dev smoke cycle passed"

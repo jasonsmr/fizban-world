@@ -1,0 +1,51 @@
+{
+  "schema": "fizban.worldstate.v0.1",
+  "seed": 407,
+  "time": {
+    "turn": 268,
+    "visit_id": "visit_0000",
+    "scene_id": "RUN_001_mountain_pass.N067"
+  },
+  "tension_index": 100,
+  "scarcity_vector": {
+    "noise_budget": "stable",
+    "memory_clarity": "stable",
+    "tools_basic": "stable",
+    "water": "stable",
+    "food": "stable",
+    "labor": "stable"
+  },
+  "rumor_pressure": {
+    "xi.faction.local": 4,
+    "none": 1
+  },
+  "flags": {
+    "status": [
+      "ROUTE_MARKED",
+      "STRAINED",
+      "WITNESS_LEFT"
+    ],
+    "facts": [
+      "FACT_ECHO_RULE_CONFIRMED",
+      "INSPECTED_N001",
+      "INSPECTED_N002",
+      "INSPECTED_N003",
+      "INSPECTED_N004",
+      "INSPECTED_N009",
+      "INSPECTED_N010",
+      "INSPECTED_N011",
+      "INSPECTED_N012",
+      "INSPECTED_N015",
+      "INSPECTED_N016",
+      "INSPECTED_N019",
+      "INSPECTED_N020",
+      "INSPECTED_N022",
+      "INSPECTED_N023",
+      "INSPECTED_N024",
+      "INSPECTED_N028",
+      "INSPECTED_N031",
+      "INSPECTED_N032"
+    ],
+    "locks": []
+  }
+}

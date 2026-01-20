@@ -1,0 +1,12 @@
+{
+  "name": "Vertical Slice Play Harness",
+  "version": "v1.20260106.3",
+  "baseline_notes": "Non-canon helper for playtesting quest + consequence + threat-field pressure. Focus: readable cause→effect→consequence text, meaningful Inspect/Status commands.",
+  "built_at_utc": "2026-01-06T03:18:24.013161Z",
+  "runs": [
+    {
+      "run_id": "RUN_001_mountain_pass",
+      "nodes": 100
+    }
+  ]
+}

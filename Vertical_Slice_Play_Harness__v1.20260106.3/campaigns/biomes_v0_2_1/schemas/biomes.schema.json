@@ -1,0 +1,18 @@
+{
+  "$id": "biomes.schema.json",
+  "title": "Biome Record",
+  "type": "object",
+  "required": ["biome_id","name","seed_scene_ref","climate","terrain","theme","threat_level","connections","poi_seeds"],
+  "properties": {
+    "biome_id": {"type":"string"},
+    "name": {"type":"string"},
+    "seed_scene_ref": {"type":"string"},
+    "climate": {"type":"string"},
+    "terrain": {"type":"string"},
+    "theme": {"type":"string"},
+    "threat_level": {"type":"integer","minimum":1,"maximum":10},
+    "connections": {"type":"array","items":{"type":"string"}},
+    "poi_seeds": {"type":"array","items":{"type":"object"}},
+    "gen_hints": {"type":"object"}
+  }
+}

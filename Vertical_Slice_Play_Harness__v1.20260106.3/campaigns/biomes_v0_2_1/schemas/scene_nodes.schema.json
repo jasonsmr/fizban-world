@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SceneNodes v0.2.1",
+  "type": "object",
+  "required": [
+    "node_id",
+    "title",
+    "choices"
+  ],
+  "properties": {
+    "node_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "lore": {
+      "type": "string"
+    },
+    "system": {
+      "type": "string"
+    },
+    "inspect": {
+      "type": "string"
+    },
+    "event": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "enum": [
+            "NEMESIS",
+            "PUZZLE",
+            "REVELATION",
+            "SANCTUARY"
+          ]
+        },
+        "text": {
+          "type": "string"
+        }
+      }
+    },
+    "ws_effects": {
+      "type": "object",
+      "properties": {
+        "q2_mutations": {
+          "type": "array",
+          "maxItems": 2
+        },
+        "facts_add": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "locks_add": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "status_add": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "choices": {
+      "type": "object"
+    }
+  }
+}

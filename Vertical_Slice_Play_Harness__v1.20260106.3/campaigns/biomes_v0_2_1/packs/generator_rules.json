@@ -1,0 +1,169 @@
+{
+  "schema_version": "0.1",
+  "seed_scene_ref": "RUN_001_mountain_pass.scene",
+  "constraints": {
+    "max_degree": 5,
+    "connected_graph": true,
+    "biome_count": 200
+  },
+  "placement_rules": [
+    {
+      "rule_id": "R1",
+      "name": "Climate continuity",
+      "description": "Prefer connecting climates within 2 steps (e.g., alpine->highland->temperate)."
+    },
+    {
+      "rule_id": "R2",
+      "name": "Hard transitions",
+      "description": "Allow rare hard transitions (arid<->subarctic) only when an anomaly POI exists in either biome."
+    },
+    {
+      "rule_id": "R3",
+      "name": "Faction influence",
+      "description": "If a faction appears in \u22653 adjacent biomes, generate a regional objective chain."
+    },
+    {
+      "rule_id": "R4",
+      "name": "POI minimum",
+      "description": "Each biome must have 2-4 POIs; at least 1 tagged 'hazard' or 'dungeon'."
+    },
+    {
+      "rule_id": "R5",
+      "name": "Quest binding",
+      "description": "Each biome has at least 1 quest; campaigns should have \u22651 cross-biome quest every 5 biomes."
+    }
+  ],
+  "procedural_parameters": {
+    "noise": {
+      "heightmap_octaves": 6,
+      "moisture_octaves": 4,
+      "temperature_octaves": 3
+    },
+    "encounters": {
+      "base_rate_by_threat_level": {
+        "1": 0.05,
+        "5": 0.18,
+        "10": 0.35
+      },
+      "event_injection_per_biome": {
+        "min": 1,
+        "max": 3
+      }
+    }
+  },
+  "worldstate_contract": "WS.v0.1",
+  "scene_generation": {
+    "target_nodes_per_biome": {
+      "min": 60,
+      "default": 120,
+      "max": 200
+    },
+    "beats": {
+      "interval": 12,
+      "types": [
+        "NEMESIS",
+        "PUZZLE",
+        "REVELATION",
+        "SANCTUARY"
+      ],
+      "weights": {
+        "NEMESIS": 0.28,
+        "PUZZLE": 0.28,
+        "REVELATION": 0.28,
+        "SANCTUARY": 0.16
+      },
+      "notes": "Inject one beat every ~12 nodes; SANCTUARY provides limited recovery; REVELATION adds facts/locks."
+    },
+    "choice_patterns": {
+      "avoid_static_ABC_roles": true,
+      "require_identity_choices": [
+        "curious",
+        "cautious",
+        "bold",
+        "merciful",
+        "pragmatic"
+      ],
+      "rule": "Do not hardcode A=safe, B=pay, C=risky. Rotate and sometimes invert."
+    },
+    "inspect_rules": {
+      "default_cost": {
+        "op": "inc",
+        "key": "/tension_index",
+        "value": 1
+      },
+      "alternatives": [
+        {
+          "op": "band_set",
+          "key": "/scarcity_vector/noise_budget",
+          "value": "scarce"
+        },
+        {
+          "op": "band_set",
+          "key": "/scarcity_vector/memory_clarity",
+          "value": "scarce"
+        }
+      ],
+      "benefit": {
+        "facts_add": [
+          "INSPECTED_<NODE_ID>"
+        ],
+        "xp_bonus": 2
+      },
+      "rule": "Inspect is never free; it trades time/attention for certainty."
+    },
+    "recovery": {
+      "sanctuary_node_tags": [
+        "SANCTUARY",
+        "CAMPFIRE",
+        "HOLLOW",
+        "WAYSIDE"
+      ],
+      "effects": [
+        {
+          "op": "dec",
+          "key": "/tension_index",
+          "value": 6
+        },
+        {
+          "op": "band_set",
+          "key": "/scarcity_vector/labor",
+          "value": "stable"
+        }
+      ],
+      "limits": {
+        "max_per_run": 3
+      },
+      "rule": "Give the player rare, meaningful relief so tension is not strictly increasing."
+    },
+    "clocks": {
+      "enable": true,
+      "facts_prefix": "CLOCK_",
+      "examples": [
+        "CLOCK_RIME_1",
+        "CLOCK_RIME_2",
+        "CLOCK_WATCHER_1"
+      ],
+      "triggers": {
+        "tension_ge_60": "NEMESIS",
+        "attention_heat_ge_70": "NEMESIS",
+        "memory_clarity_dire": "REVELATION"
+      }
+    },
+    "npc_minimal": {
+      "keys": [
+        "trust",
+        "fear",
+        "respect",
+        "curiosity",
+        "intent",
+        "memory_tags"
+      ],
+      "intent_rules": [
+        "fear>=70 and trust<=35 -> deceptive",
+        "trust>=70 and respect>=60 -> benevolent",
+        "respect<=30 and curiosity>=60 -> selfish_else_neutral"
+      ],
+      "appearance": "NPCs must appear in narration at least every NEMESIS beat, not just as stats."
+    }
+  }
+}

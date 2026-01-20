@@ -1,50 +1,61 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-base="${1:-http://127.0.0.1:8000}"
+BASE_URL="${BASE_URL:-http://127.0.0.1:8000}"
+TMPROOT="${TMP:-${TMPDIR:-$HOME/tmp}}"
+mkdir -p "$TMPROOT"
+LOGFILE="$TMPROOT/fizban_uvicorn.log"
 
-need() { command -v "$1" >/dev/null 2>&1 || { echo "[FAIL] missing tool: $1" >&2; exit 1; }; }
-need curl
-need jq
+RUN_CMD="${RUN_CMD:-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --log-level info}"
 
-echo "[1] health"
-curl -fsS "$base/health" | jq .
+echo "[RUN] starting server: $RUN_CMD"
+echo "[LOG] $LOGFILE"
 
-echo "[2] npc/Puck"
-curl -fsS "$base/npc/Puck" | jq .
+bash -lc "$RUN_CMD" >"$LOGFILE" 2>&1 &
+pid="$!"
 
-echo "[3] realm selection"
-curl -fsS -X POST "$base/realm/selection" \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "actor":"Player",
-    "selection_id":"realm_shrine_akatosh",
-    "location":"RealmOfLorkhan",
-    "effects":[
-      {"channel":"divine","key":"Akatosh","delta":0.10,"note":"start_shrine"},
-      {"channel":"faction","key":"Companions","delta":0.05,"note":"start_affinity"},
-      {"channel":"tag","tag":"alternate_start","delta":0.0,"note":"flag"}
-    ],
-    "tags":["test_room"]
-  }' | jq .
+cleanup() {
+  echo "[CLEANUP] stopping server pid=$pid"
+  kill "$pid" >/dev/null 2>&1 || true
+  wait "$pid" >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
 
-echo "[4] travel options (RainbowBridge)"
-opts_json="$(curl -fsS "$base/travel/options?from_location=RainbowBridge")"
-echo "$opts_json" | jq .
-opt_count="$(echo "$opts_json" | jq -r '.options | length')"
-test "$opt_count" -gt 0 || { echo "[FAIL] travel/options returned 0 options" >&2; exit 1; }
-echo "[OK] travel/options has $opt_count options"
+echo "[WAIT] $BASE_URL/health"
+for i in $(seq 1 60); do
+  # Silence connection errors; success is JSON ok==true
+  if curl -fsS -m 2 "$BASE_URL/health" 2>/dev/null | jq -e '.ok == true' >/dev/null 2>&1; then
+    echo "[OK] server is up"
+    break
+  fi
 
-echo "[5] travel go (RainbowBridge -> Whiterun, gold)"
-go_json="$(curl -fsS -X POST "$base/travel/go" \
-  -H 'Content-Type: application/json' \
-  -d '{"actor":"Player","from_location":"RainbowBridge","to_location":"Whiterun","lane":"gold"}')"
-echo "$go_json" | jq .
-ok="$(echo "$go_json" | jq -r '.ok')"
-test "$ok" = "true" || { echo "[FAIL] travel/go failed" >&2; exit 1; }
-echo "[OK] travel/go ok"
+  if ! kill -0 "$pid" >/dev/null 2>&1; then
+    echo "[FAIL] server died early; tail log:"
+    tail -n 160 "$LOGFILE" || true
+    exit 1
+  fi
 
-echo "[6] travel where (Player)"
-curl -fsS "$base/travel/where?actor=Player" | jq .
+  sleep 0.25
 
-echo "[OK] smoke passed"
+  if [ "$i" -eq 60 ]; then
+    echo "[FAIL] server never became healthy; tail log:"
+    tail -n 200 "$LOGFILE" || true
+    exit 1
+  fi
+done
+
+echo "[TEST] api_contract_check"
+./tools/api_contract_check.sh "$BASE_URL" || {
+  echo "[FAIL] contract check failed; tail log:"
+  tail -n 200 "$LOGFILE" || true
+  exit 1
+}
+
+echo "[TEST] smoke_api"
+./tools/smoke_api.sh "$BASE_URL" || {
+  echo "[FAIL] smoke_api failed; tail log:"
+  tail -n 200 "$LOGFILE" || true
+  exit 1
+}
+
+echo "[OK] dev smoke cycle passed"

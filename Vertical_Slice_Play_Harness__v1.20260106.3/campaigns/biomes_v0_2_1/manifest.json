@@ -1,0 +1,32 @@
+{
+  "pack_name": "biomes_v0_1",
+  "version": "0.2.1",
+  "created_utc": "2026-01-19T00:10:13Z",
+  "seed_scene_ref": "RUN_001_mountain_pass.scene",
+  "counts": {
+    "biomes": 200,
+    "campaigns": 10,
+    "quests": 200,
+    "bindings": 200,
+    "edges": 439
+  },
+  "constraints": {
+    "max_degree": 5,
+    "min_degree": 2
+  },
+  "files": [
+    "packs/biomes.jsonl",
+    "packs/campaigns.jsonl",
+    "packs/quests.jsonl",
+    "packs/bindings.jsonl",
+    "packs/map_graph.json",
+    "packs/generator_rules.json",
+    "docs/README.md"
+  ],
+  "pack_id": "biomes_v0_2_1",
+  "generated_at": "2026-01-19T04:52:35Z",
+  "notes": [
+    "v0.2.1: integrates learnings from RUN_001_mountain_pass playtest: anti-monotony beats, inspect cost hooks, recovery/sanctuary hooks, and clearer WS effect authoring.",
+    "No changes to biome graph topology; only additive metadata fields + generator rules."
+  ]
+}

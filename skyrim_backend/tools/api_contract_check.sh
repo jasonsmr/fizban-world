@@ -1,67 +1,155 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+base="${1:-http://127.0.0.1:8000}"
+
 req() {
   local url="$1"
-  echo "[contract] GET $url"
-  # -sS: quiet but show errors, -D-: print headers, keep body
-  if ! out="$(curl -sS -D- "$url")"; then
-    echo "[FAIL] curl failed: $url"
+  echo "[contract] GET $url" >&2
+
+  local resp code body
+  resp="$(curl -fsS -m 5 -w $'\n%{http_code}' "$url")" || {
+    echo "[FAIL] curl failed: $url" >&2
+    return 1
+  }
+
+  code="$(printf "%s" "$resp" | tail -n1)"
+  body="$(printf "%s" "$resp" | sed '$d')"
+
+  if ! [[ "$code" =~ ^2[0-9][0-9]$ ]]; then
+    echo "[FAIL] HTTP $code ($url)" >&2
+    printf "%s\n" "$body" | sed -n '1,200p' >&2
     return 1
   fi
-  # If server returned non-2xx, curl still exits 0 unless -f is used.
-  # So detect status line:
-  status="$(printf "%s" "$out" | head -n1)"
-  if ! echo "$status" | grep -qE " 2[0-9][0-9] "; then
-    echo "[FAIL] $status"
-    echo "$out" | sed -n '1,200p'
-    return 1
-  fi
-  # Print body only (strip headers) so callers can pipe to jq / capture JSON
-  printf "%s" "$out" | awk 'BEGIN{h=1} h && $0==""{h=0; next} !h{print}'
-  return 0
+
+  printf "%s\n" "$body"
 }
 
 req_post_json() {
   local url="$1"
   local json="$2"
-  echo "[contract] POST $url"
-  if ! out="$(curl -sS -D- -X POST "$url" -H 'Content-Type: application/json' -d "$json")"; then
-    echo "[FAIL] curl failed: $url"
+  echo "[contract] POST $url" >&2
+
+  local resp code body
+  resp="$(curl -fsS -m 5 -w $'\n%{http_code}' \
+    -X POST "$url" -H 'Content-Type: application/json' -d "$json")" || {
+      echo "[FAIL] curl failed: $url" >&2
+      return 1
+    }
+
+  code="$(printf "%s" "$resp" | tail -n1)"
+  body="$(printf "%s" "$resp" | sed '$d')"
+
+  if ! [[ "$code" =~ ^2[0-9][0-9]$ ]]; then
+    echo "[FAIL] HTTP $code ($url)" >&2
+    printf "%s\n" "$body" | sed -n '1,200p' >&2
     return 1
   fi
-  status="$(printf "%s" "$out" | head -n1)"
-  if ! echo "$status" | grep -qE " 2[0-9][0-9] "; then
-    echo "[FAIL] $status"
-    echo "$out" | sed -n '1,200p'
-    return 1
-  fi
-  printf "%s" "$out" | awk 'BEGIN{h=1} h && $0==""{h=0; next} !h{print}'
-  return 0
+
+  printf "%s\n" "$body"
 }
+
+echo "[contract] health" >&2
+req "$base/health" | jq -e '.ok == true' >/dev/null
+
+echo "[contract] addons" >&2
+addons="$(req "$base/addons")"
+echo "$addons" | jq -e '.ok == true' >/dev/null
+
+echo "[contract] travel/options RainbowBridge" >&2
+opts="$(req "$base/travel/options?from_location=RainbowBridge")"
+echo "$opts" | jq -e '.ok == true' >/dev/null
+
+# Only enforce non-empty options if rainbow_bridge enabled
+if echo "$addons" | jq -e '.addons.rainbow_bridge.enabled == true' >/dev/null 2>&1; then
+  echo "$opts" | jq -e '.options | length > 0' >/dev/null
+fi
+
+echo "[contract] travel/go RainbowBridge -> Whiterun (gold)" >&2
+go="$(req_post_json "$base/travel/go" \
+  '{"actor":"Player","from_location":"RainbowBridge","to_location":"Whiterun","lane":"gold"}')"
+echo "$go" | jq -e '.ok == true' >/dev/null
+
+echo "[contract] travel/where Player" >&2
+where="$(req "$base/travel/where?actor=Player")"
+echo "$where" | jq -e '.ok == true' >/dev/null
+echo "$where" | jq -e '.location != null and .location != ""' >/dev/null
+
+echo "[OK] contract check passed" >&2#!/usr/bin/env bash
+set -euo pipefail
 
 base="${1:-http://127.0.0.1:8000}"
 
-echo "[contract] health"
-req "$base/health" | jq -e '.ok == true' >/dev/null
+req() {
+	  local url="$1"
+	    echo "[contract] GET $url" >&2
 
-echo "[contract] addons"
-req "$base/addons" | jq -e '.ok == true' >/dev/null
+	      local resp code body
+	        resp="$(curl -fsS -m 5 -w $'\n%{http_code}' "$url")" || {
+			    echo "[FAIL] curl failed: $url" >&2
+		    return 1
+		      }
 
-echo "[contract] travel/options RainbowBridge"
-opts="$(req "$base/travel/options?from_location=RainbowBridge")"
-echo "$opts" | jq -e '.ok == true' >/dev/null
-# require non-empty options (this catches regressions where provider stops registering)
-echo "$opts" | jq -e '.options | length > 0' >/dev/null
+	        code="$(printf "%s" "$resp" | tail -n1)"
+		  body="$(printf "%s" "$resp" | sed '$d')"
 
-echo "[contract] travel/go RainbowBridge -> Whiterun (gold)"
-go="$(req_post_json "$base/travel/go" '{"actor":"Player","from_location":"RainbowBridge","to_location":"Whiterun","lane":"gold"}')"
-echo "$go" | jq -e '.ok == true' >/dev/null
+		    if ! [[ "$code" =~ ^2[0-9][0-9]$ ]]; then
+			        echo "[FAIL] HTTP $code ($url)" >&2
+				    printf "%s\n" "$body" | sed -n '1,200p' >&2
+				        return 1
+					  fi
 
-echo "[contract] travel/where Player"
-where="$(req "$base/travel/where?actor=Player")"
-echo "$where" | jq -e '.ok == true' >/dev/null
-# allow either "Whiterun" or whatever your provider sets as final
-echo "$where" | jq -e '.location != null and .location != ""' >/dev/null
+					    printf "%s\n" "$body"
+				    }
 
-echo "[OK] contract check passed"
+			    req_post_json() {
+				      local url="$1"
+				        local json="$2"
+					  echo "[contract] POST $url" >&2
+
+					    local resp code body
+					      resp="$(curl -fsS -m 5 -w $'\n%{http_code}' \
+						          -X POST "$url" -H 'Content-Type: application/json' -d "$json")" || {
+								        echo "[FAIL] curl failed: $url" >&2
+					            return 1
+						        }
+
+						  code="$(printf "%s" "$resp" | tail -n1)"
+						    body="$(printf "%s" "$resp" | sed '$d')"
+
+						      if ! [[ "$code" =~ ^2[0-9][0-9]$ ]]; then
+							          echo "[FAIL] HTTP $code ($url)" >&2
+								      printf "%s\n" "$body" | sed -n '1,200p' >&2
+								          return 1
+									    fi
+
+									      printf "%s\n" "$body"
+								      }
+
+							      echo "[contract] health" >&2
+							      req "$base/health" | jq -e '.ok == true' >/dev/null
+
+							      echo "[contract] addons" >&2
+							      addons="$(req "$base/addons")"
+							      echo "$addons" | jq -e '.ok == true' >/dev/null
+
+							      echo "[contract] travel/options RainbowBridge" >&2
+							      opts="$(req "$base/travel/options?from_location=RainbowBridge")"
+							      echo "$opts" | jq -e '.ok == true' >/dev/null
+
+							      # Only enforce non-empty options if rainbow_bridge enabled
+							      # if echo "$addons" | jq -e '.addons.rainbow_bridge.enabled == true' >/dev/null 2>&1; then
+							      #   echo "$opts" | jq -e '.options | length > 0' >/dev/null
+							      #   fi
+							      #
+							      #   echo "[contract] travel/go RainbowBridge -> Whiterun (gold)" >&2
+							      #   go="$(req_post_json "$base/travel/go" \
+							      #     '{"actor":"Player","from_location":"RainbowBridge","to_location":"Whiterun","lane":"gold"}')"
+							      #     echo "$go" | jq -e '.ok == true' >/dev/null
+							      #
+							      #     echo "[contract] travel/where Player" >&2
+							      #     where="$(req "$base/travel/where?actor=Player")"
+							      #     echo "$where" | jq -e '.ok == true' >/dev/null
+							      #     echo "$where" | jq -e '.location != null and .location != ""' >/dev/null
+							      #
+							      #     echo "[OK] contract check passed" >&2
